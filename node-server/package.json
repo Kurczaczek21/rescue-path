@@ -1,0 +1,15 @@
+{
+  "name": "rescue-path",
+  "version": "1.0.0",
+  "description": "App to make heat maps from google takout",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mateusz Warzecha",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "helmet": "^7.1.0"
+  }
+}
