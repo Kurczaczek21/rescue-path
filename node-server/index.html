@@ -15,15 +15,30 @@
     <style>
       /* Stylizacja mapy, pełny widok */
       #map {
-        height: 100vh;
+        height: 80vh;
         width: 100%;
+      }
+      #controls {
+        margin: 10px;
       }
     </style>
   </head>
   <body>
+    <!-- Formularz do wprowadzania przedziału czasowego -->
+    <div id="controls">
+      <label for="start-time">Początek:</label>
+      <input type="datetime-local" id="start-time" />
+      <label for="end-time">Koniec:</label>
+      <input type="datetime-local" id="end-time" />
+      <button onclick="filterData()">Filtruj</button>
+    </div>
+
     <div id="map"></div>
 
     <script>
+      let originalData = [];
+      let map, heatmap;
+
       function initMap() {
         const mapDiv = document.getElementById("map");
         if (!mapDiv) {
@@ -33,45 +48,88 @@
 
         const options = {
           zoom: 13,
-          center: { lat: 42.0, lng: -87.96 }, // Przykładowe centrum mapy
+          center: { lat: 50.0954997, lng: 19.8419031 },
           mapTypeId: "satellite",
         };
 
-        const map = new google.maps.Map(mapDiv, options);
+        map = new google.maps.Map(mapDiv, options);
 
         fetch("/heatmap-data")
           .then((response) => response.json())
           .then((data) => {
-            // Sprawdzanie, czy dane są tablicą
             if (!Array.isArray(data)) {
               throw new Error("Otrzymane dane nie są tablicą");
             }
-
-            // Tworzenie obiektów LatLng z danymi
-            const heatmapData = data.map((item) => {
-              if (item.location) {
-                return {
-                  location: new google.maps.LatLng(
-                    item.location.lat,
-                    item.location.lng
-                  ),
-                  weight: item.weight || 1,
-                };
-              }
-              throw new Error("Brak właściwości location w danych.");
-            });
-
-            const heatmap = new google.maps.visualization.HeatmapLayer({
-              data: heatmapData,
-              map: map,
-            });
-
-            heatmap.setMap(map);
+            originalData = data; // Zapisz oryginalne dane
+            updateMap(data); // Aktualizacja mapy
           })
           .catch((error) =>
             console.error("Error loading heatmap data:", error)
           );
       }
+
+      function updateMap(data) {
+        if (heatmap) {
+          heatmap.setMap(null); // Usuń poprzednią warstwę termiczną
+        }
+
+        // Tworzenie obiektów LatLng i markerów z danymi
+        const heatmapData = data.map((item) => {
+          if (item.location) {
+            return {
+              location: new google.maps.LatLng(
+                item.location.lat,
+                item.location.lng
+              ),
+              weight: item.weight || 1,
+            };
+          }
+          throw new Error("Brak właściwości location w danych.");
+        });
+
+        heatmap = new google.maps.visualization.HeatmapLayer({
+          data: heatmapData,
+          map: map,
+          dissipating: true,
+          gradient: [
+            "rgba(0, 255, 255, 0)",
+            "rgba(0, 255, 255, 1)",
+            "rgba(0, 191, 255, 1)",
+            "rgba(0, 127, 255, 1)",
+            "rgba(0, 63, 255, 1)",
+            "rgba(0, 0, 255, 1)",
+            "rgba(127, 0, 255, 1)",
+            "rgba(255, 0, 255, 1)",
+            "rgba(255, 0, 127, 1)",
+            "rgba(255, 0, 0, 1)",
+          ],
+          maxIntensity: 100,
+          radius: 20,
+          opacity: 0.8,
+        });
+
+        heatmap.setMap(map);
+      }
+
+      function filterData() {
+        const startTime = new Date(document.getElementById("start-time").value);
+        const endTime = new Date(document.getElementById("end-time").value);
+
+        if (!startTime || !endTime || startTime >= endTime) {
+          alert("Proszę wprowadzić prawidłowy przedział czasowy.");
+          return;
+        }
+
+        const filteredData = originalData.filter((item) => {
+          const itemTime = new Date(item.time);
+          return itemTime >= startTime && itemTime <= endTime;
+        });
+
+        updateMap(filteredData); // Aktualizacja mapy po filtrowaniu
+      }
+
+      // Inicjalizacja mapy po załadowaniu strony
+      window.onload = initMap;
     </script>
   </body>
 </html>
