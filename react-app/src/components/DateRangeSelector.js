@@ -1,12 +1,35 @@
-// src/components/DateRangeSelector.js
 import React, { useState } from "react";
+import axios from "axios"; // Import axios
+import { useNavigate, useLocation } from "react-router-dom"; // Import useLocation
 
 const DateRangeSelector = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [filteredData, setFilteredData] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation(); // Pobierz lokalizację
 
-  const handleSubmit = () => {
-    console.log(`Zakres dat: od ${startDate} do ${endDate}`);
+  const filePath = location.state?.filePath; // Odbierz ścieżkę pliku z poprzedniego komponentu
+
+  const handleSubmit = async () => {
+    if (!filePath) {
+      alert("Brak ścieżki pliku!");
+      return;
+    }
+
+    try {
+      const response = await axios.post("http://127.0.0.1:5050/filter-data", {
+        startDate,
+        endDate,
+        file_path: filePath, // Przekazujemy ścieżkę pliku w zapytaniu
+      });
+
+      // Zapisz przefiltrowane dane i przekieruj do nowej strony z mapą
+      setFilteredData(response.data);
+      navigate("/map", { state: { locations: response.data } });
+    } catch (error) {
+      console.error("Błąd podczas pobierania danych:", error);
+    }
   };
 
   return (

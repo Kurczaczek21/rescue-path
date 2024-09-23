@@ -56,6 +56,39 @@ app.post("/upload", async (req, res) => {
   }
 });
 
+app.post("/filter-data", (req, res) => {
+  const { startDate, endDate, file_path } = req.body;
+
+  // Sprawdzenie, czy podano ścieżkę do pliku
+  if (!file_path) {
+    return res.status(400).json({ error: "Brak ścieżki do pliku" });
+  }
+
+  // Wczytanie pliku JSON z danymi
+
+  const filePath = file_path;
+
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Błąd podczas wczytywania pliku", path: filePath });
+    }
+
+    const parsedData = JSON.parse(data);
+
+    // Filtruj dane na podstawie zakresu dat
+    const filteredData = parsedData.filter((item) => {
+      const timestamp = new Date(item.time); // Zakładam, że używamy pola 'time' zamiast 'timestamp'
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return timestamp >= start && timestamp <= end;
+    });
+
+    res.json(filteredData);
+  });
+});
+
 // Uruchamiamy serwer
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

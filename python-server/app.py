@@ -86,7 +86,7 @@ def parse_file():
             })
 
         # Tworzenie ścieżki do nowego pliku
-        output_file_path = os.path.join(os.getcwd(), 'heatmap_data.json')
+        output_file_path = file_path.replace('.json', '_processed.json')
 
         # Zapisanie danych do pliku heatmap_data.json
         with open(output_file_path, 'w') as outfile:

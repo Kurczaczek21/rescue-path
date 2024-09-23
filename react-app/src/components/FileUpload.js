@@ -14,10 +14,9 @@ const FileUpload = () => {
     setFile(acceptedFiles[0]); // Ustaw pierwszy wybrany plik
   }, []);
 
-  // Konfiguracja dla react-dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    multiple: false, // Obsługujemy tylko jeden plik na raz
+    multiple: false,
     accept: "application/json", // Akceptujemy tylko pliki JSON
   });
 
@@ -34,7 +33,7 @@ const FileUpload = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Wysyła plik do serwera Node.js
+      // Wysyłanie pliku do serwera Node.js
       const uploadResponse = await axios.post(
         "http://127.0.0.1:5050/upload",
         formData,
@@ -45,22 +44,22 @@ const FileUpload = () => {
         }
       );
 
-      // Odbierz ścieżkę pliku
-      const filePath = uploadResponse.data.file_path;
+      const filePath = uploadResponse.data.file_path; // Otrzymujemy ścieżkę pliku z odpowiedzi
 
-      console.log("Recived new file:");
-      console.log(filePath);
+      console.log(filePath); // PLIK WYSŁANY
 
-      // Wysyłanie ścieżki pliku do serwera Flask
+      // Odpytanie serwera Flask do przetworzenia pliku
       const parseResponse = await axios.post("http://127.0.0.1:5000/parse", {
-        file_path: filePath,
+        file_path: filePath, // Ścieżka pliku przesyłana do serwera Flask
       });
 
-      if (parseResponse.status === 200) {
-        setResult("OK");
-      } else {
-        setResult("FAIL");
-      }
+      console.log(filePath); // PLIK PRZETWORZONY
+      const processedFilePath = parseResponse.data.file_path; // Przetworzona ścieżka pliku
+
+      setResult("OK");
+
+      // Przekazanie przetworzonej ścieżki pliku do DateRangeSelector
+      navigate("/date-range", { state: { filePath: processedFilePath } });
     } catch (error) {
       console.error("Error:", error);
       setResult("FAIL");
@@ -99,8 +98,6 @@ const FileUpload = () => {
         {loading ? "Ładowanie..." : "Wyślij plik"}
       </button>
       {result && <p>Wynik: {result}</p>}
-
-      <button onClick={() => navigate("/date-range")}>Przejdź dalej</button>
     </div>
   );
 };
