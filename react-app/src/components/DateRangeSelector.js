@@ -24,6 +24,8 @@ const DateRangeSelector = () => {
         file_path: filePath, // Przekazujemy ścieżkę pliku w zapytaniu
       });
 
+      console.log(response);
+
       // Zapisz przefiltrowane dane i przekieruj do nowej strony z mapą
       setFilteredData(response.data);
       navigate("/map", { state: { locations: response.data } });

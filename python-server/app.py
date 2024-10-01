@@ -67,7 +67,7 @@ def parse_file():
                     # Oblicz średnią pewność aktywności
                     average_confidence = sum(activity["confidence"] for activity in activity_data["activity"]) / len(activity_data["activity"])
                     # Przelicz wagę na zakres 50-100
-                    weight = calculate_weight(average_confidence)
+                    # weight = calculate_weight(average_confidence)
 
                 # Oblicz czas trwania (duration) dla danej lokalizacji
                 timestamps = [activity["timestamp"] for activity in location["activity"]]
@@ -79,7 +79,7 @@ def parse_file():
                     "lat": lat,
                     "lng": lng
                 },
-                "weight": weight,
+                "weight": 1,
                 "time": time,
                 "duration": duration,
                 "source": source
