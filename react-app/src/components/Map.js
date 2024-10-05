@@ -158,13 +158,6 @@ const Map = () => {
         end.getMonth() -
         start.getMonth();
 
-      if (timeSpanInMonths > 6) {
-        // Remove every third point
-        filteredLocations = filteredLocations.filter(
-          (_, index) => index % 2 !== 0
-        );
-      }
-
       navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);
@@ -237,6 +230,9 @@ const Map = () => {
                     <p><strong>Longitude:</strong> ${lng}</p>
                     <p><strong>Time:</strong> ${loc.time || "N/A"}</p>
                     <p><strong>Device Source:</strong> ${signalType}</p>
+                    <p><strong>Device Tag:</strong> ${
+                      loc.deviceTag || "N/A"
+                    }</p>
                   </div>
                 `,
               });

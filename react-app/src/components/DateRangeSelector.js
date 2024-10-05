@@ -14,6 +14,8 @@ import {
   List,
   ListItem,
   ListItemText,
+  Checkbox,
+  ListItemIcon,
 } from "@mui/material";
 
 const DateRangeSelector = () => {
@@ -23,10 +25,11 @@ const DateRangeSelector = () => {
   const [autoSelect, setAutoSelect] = useState("");
   const [error, setError] = useState(null);
   const [devices, setDevices] = useState([]);
+  const [selectedDevices, setSelectedDevices] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Przechwycenie filePath z poprzedniego komponentu (Map)
+  // Get filePath from previous component (Map)
   const filePath = location.state?.filePath;
 
   const getAutoSelectedDates = (option) => {
@@ -103,10 +106,11 @@ const DateRangeSelector = () => {
       const response = await axios.post("http://127.0.0.1:5050/filter-data", {
         startDate,
         endDate,
-        file_path: filePath, // Przekazanie filePath
+        file_path: filePath,
+        selectedDevices, // Send selected devices
       });
 
-      const filteredLocations = response.data;
+      let filteredLocations = response.data;
 
       // Check if the time span is greater than 6 months
       const start = new Date(startDate);
@@ -130,7 +134,7 @@ const DateRangeSelector = () => {
     }
   };
 
-  // Funkcja do pobierania urządzeń z pliku JSON
+  // Function to fetch devices from JSON file
   const fetchDevices = async () => {
     try {
       const response = await axios.get(`http://127.0.0.1:5050/devices`, {
@@ -142,12 +146,25 @@ const DateRangeSelector = () => {
     }
   };
 
-  // Wywołaj fetchDevices po załadowaniu komponentu
+  // Fetch devices on component mount
   useEffect(() => {
     if (filePath) {
       fetchDevices();
     }
   }, [filePath]);
+
+  const handleDeviceToggle = (device) => {
+    const currentIndex = selectedDevices.indexOf(device.deviceTag);
+    const newSelectedDevices = [...selectedDevices];
+
+    if (currentIndex === -1) {
+      newSelectedDevices.push(device.deviceTag);
+    } else {
+      newSelectedDevices.splice(currentIndex, 1);
+    }
+
+    setSelectedDevices(newSelectedDevices);
+  };
 
   return (
     <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -216,7 +233,19 @@ const DateRangeSelector = () => {
           <Typography variant="h6">Urządzenia:</Typography>
           <List>
             {devices.map((device, index) => (
-              <ListItem key={index}>
+              <ListItem
+                key={index}
+                button
+                onClick={() => handleDeviceToggle(device)}
+              >
+                <ListItemIcon>
+                  <Checkbox
+                    edge="start"
+                    checked={selectedDevices.indexOf(device.deviceTag) !== -1}
+                    tabIndex={-1}
+                    disableRipple
+                  />
+                </ListItemIcon>
                 <ListItemText
                   primary={`${device.devicePrettyName} (${device.platformType})`}
                   secondary={`Producent: ${device.manufacturer}, Model: ${

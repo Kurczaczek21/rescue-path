@@ -74,14 +74,12 @@ app.post("/upload", async (req, res) => {
 });
 
 app.post("/filter-data", (req, res) => {
-  const { startDate, endDate, file_path } = req.body;
+  const { startDate, endDate, file_path, selectedDevices } = req.body;
 
-  // Sprawdzenie, czy podano ścieżkę do pliku
   if (!file_path) {
     return res.status(400).json({ error: "Brak ścieżki do pliku" });
   }
 
-  // Wczytanie pliku JSON z danymi
   const filePath = file_path;
 
   fs.readFile(filePath, "utf8", (err, data) => {
@@ -98,42 +96,24 @@ app.post("/filter-data", (req, res) => {
       return res.status(500).json({ error: "Błąd podczas analizy pliku JSON" });
     }
 
-    // Sprawdzenie, czy tablica locations istnieje
     if (!Array.isArray(parsedData.locations)) {
       return res.status(400).json({ error: "Brak danych lokalizacji w pliku" });
     }
 
-    // Filtruj dane na podstawie zakresu dat
+    // Filtruj dane na podstawie zakresu dat i wybranych urządzeń
     const filteredData = parsedData.locations.filter((item) => {
       const timestamp = new Date(item.time);
       const start = new Date(startDate);
       const end = new Date(endDate);
-      return timestamp >= start && timestamp <= end;
+      const isInDateRange = timestamp >= start && timestamp <= end;
+      const isInSelectedDevices =
+        selectedDevices.length === 0 ||
+        selectedDevices.includes(item.deviceTag); // Check if the device is selected
+
+      return isInDateRange && isInSelectedDevices;
     });
 
-    // Obliczanie różnicy czasu między startDate a endDate w miesiącach
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const timeSpanInMonths =
-      (end.getFullYear() - start.getFullYear()) * 12 +
-      (end.getMonth() - start.getMonth());
-
-    let reducedData = filteredData;
-
-    // Usuwanie punktów w zależności od zakresu dat
-    if (timeSpanInMonths > 12) {
-      // Jeśli zakres dat jest większy niż rok, usuń co drugi punkt
-      reducedData = filteredData.filter((_, index) => index % 2 !== 0);
-    } else if (timeSpanInMonths > 6) {
-      // Jeśli zakres dat jest większy niż 6 miesięcy, usuń co trzeci punkt
-      reducedData = filteredData.filter((_, index) => index % 3 !== 0);
-    } else if (timeSpanInMonths > 1) {
-      // Jeśli zakres dat jest większy niż miesiąc, usuń co czwarty punkt
-      reducedData = filteredData.filter((_, index) => index % 4 !== 0);
-    }
-
-    // Zwrócenie przefiltrowanych i zredukowanych danych
-    res.json(reducedData);
+    res.json(filteredData);
   });
 });
 

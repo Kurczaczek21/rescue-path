@@ -91,7 +91,8 @@ def parse_file():
                 "platformType": device.get("platformType"),
                 "manufacturer": device["deviceSpec"].get("manufacturer"),
                 "model": device["deviceSpec"].get("model"),
-                "timelineEnabled": settings_data.get("timelineEnabled")
+                "timelineEnabled": settings_data.get("timelineEnabled"),
+                "deviceTag": device.get("deviceTag")  # Include deviceTag from settings
             })
 
         # Tworzenie ścieżki do nowego pliku
