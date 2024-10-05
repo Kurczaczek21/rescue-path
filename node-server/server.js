@@ -91,11 +91,21 @@ app.post("/filter-data", (req, res) => {
         .json({ error: "Błąd podczas wczytywania pliku", path: filePath });
     }
 
-    const parsedData = JSON.parse(data);
+    let parsedData;
+    try {
+      parsedData = JSON.parse(data);
+    } catch (parseError) {
+      return res.status(500).json({ error: "Błąd podczas analizy pliku JSON" });
+    }
+
+    // Sprawdzenie, czy tablica locations istnieje
+    if (!Array.isArray(parsedData.locations)) {
+      return res.status(400).json({ error: "Brak danych lokalizacji w pliku" });
+    }
 
     // Filtruj dane na podstawie zakresu dat
-    const filteredData = parsedData.filter((item) => {
-      const timestamp = new Date(item.time); // Zakładam, że używamy pola 'time' zamiast 'timestamp'
+    const filteredData = parsedData.locations.filter((item) => {
+      const timestamp = new Date(item.time);
       const start = new Date(startDate);
       const end = new Date(endDate);
       return timestamp >= start && timestamp <= end;
@@ -124,6 +134,35 @@ app.post("/filter-data", (req, res) => {
 
     // Zwrócenie przefiltrowanych i zredukowanych danych
     res.json(reducedData);
+  });
+});
+
+// Endpoint do pobierania urządzeń z pliku JSON
+app.get("/devices", (req, res) => {
+  const { file_path } = req.query;
+
+  // Sprawdzenie, czy podano ścieżkę do pliku
+  if (!file_path) {
+    return res.status(400).json({ error: "Brak ścieżki do pliku" });
+  }
+
+  // Wczytanie pliku JSON z danymi
+  fs.readFile(file_path, "utf8", (err, data) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ error: "Błąd podczas wczytywania pliku", path: file_path });
+    }
+
+    try {
+      const parsedData = JSON.parse(data);
+
+      // Zwracamy dane o urządzeniach
+      // Zakładam, że dane o urządzeniach są w formacie { devices: [...] }
+      res.json({ devices: parsedData.devices || [] });
+    } catch (parseError) {
+      return res.status(500).json({ error: "Błąd podczas analizy pliku JSON" });
+    }
   });
 });
 

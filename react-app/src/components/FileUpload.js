@@ -10,13 +10,12 @@ const FileUpload = () => {
   const [settingsFile, setSettingsFile] = useState(null);
   const navigate = useNavigate();
 
-  // Obsługuje przeciąganie i upuszczanie plików dla obu rodzajów plików
   const onDropRecords = useCallback((acceptedFiles) => {
-    setRecordsFile(acceptedFiles[0]); // Ustaw pierwszy wybrany plik dla records
+    setRecordsFile(acceptedFiles[0]);
   }, []);
 
   const onDropSettings = useCallback((acceptedFiles) => {
-    setSettingsFile(acceptedFiles[0]); // Ustaw pierwszy wybrany plik dla settings
+    setSettingsFile(acceptedFiles[0]);
   }, []);
 
   const {
@@ -55,7 +54,6 @@ const FileUpload = () => {
 
       console.log(formData);
 
-      // Wysyłanie plików do serwera Node.js
       const uploadResponse = await axios.post(
         "http://127.0.0.1:5050/upload",
         formData,
@@ -68,19 +66,18 @@ const FileUpload = () => {
 
       const { records_file_path, settings_file_path } = uploadResponse.data;
 
-      console.log(records_file_path); // Ścieżka pliku records
-      console.log(settings_file_path); // Ścieżka pliku settings (tylko logowanie)
+      console.log(records_file_path);
+      console.log(settings_file_path);
 
-      // Odpytanie serwera Flask do przetworzenia pliku records
       const parseResponse = await axios.post("http://127.0.0.1:5000/parse", {
-        file_path: records_file_path, // Ścieżka pliku przesyłana do serwera Flask
+        records_path: records_file_path, 
+        settings_path: settings_file_path,
       });
 
-      const processedFilePath = parseResponse.data.file_path; // Przetworzona ścieżka pliku
+      const processedFilePath = parseResponse.data.file_path;
 
       setResult("OK");
 
-      // Przekazanie przetworzonej ścieżki pliku do DateRangeSelector
       navigate("/date-range", { state: { filePath: processedFilePath } });
     } catch (error) {
       console.error("Error:", error);

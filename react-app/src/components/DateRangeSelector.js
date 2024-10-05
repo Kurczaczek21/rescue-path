@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -11,6 +11,9 @@ import {
   Box,
   FormControl,
   InputLabel,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
 
 const DateRangeSelector = () => {
@@ -19,6 +22,7 @@ const DateRangeSelector = () => {
   const [filteredData, setFilteredData] = useState(null);
   const [autoSelect, setAutoSelect] = useState("");
   const [error, setError] = useState(null);
+  const [devices, setDevices] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -102,7 +106,7 @@ const DateRangeSelector = () => {
         file_path: filePath, // Przekazanie filePath
       });
 
-      let filteredLocations = response.data;
+      const filteredLocations = response.data;
 
       // Check if the time span is greater than 6 months
       const start = new Date(startDate);
@@ -125,6 +129,25 @@ const DateRangeSelector = () => {
       console.error("Błąd podczas pobierania danych:", error);
     }
   };
+
+  // Funkcja do pobierania urządzeń z pliku JSON
+  const fetchDevices = async () => {
+    try {
+      const response = await axios.get(`http://127.0.0.1:5050/devices`, {
+        params: { file_path: filePath },
+      });
+      setDevices(response.data.devices || []);
+    } catch (error) {
+      console.error("Błąd podczas pobierania urządzeń:", error);
+    }
+  };
+
+  // Wywołaj fetchDevices po załadowaniu komponentu
+  useEffect(() => {
+    if (filePath) {
+      fetchDevices();
+    }
+  }, [filePath]);
 
   return (
     <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -187,6 +210,25 @@ const DateRangeSelector = () => {
             <Typography color="error">{error}</Typography>
           </Grid>
         )}
+
+        {/* Devices list */}
+        <Grid item xs={12}>
+          <Typography variant="h6">Urządzenia:</Typography>
+          <List>
+            {devices.map((device, index) => (
+              <ListItem key={index}>
+                <ListItemText
+                  primary={`${device.devicePrettyName} (${device.platformType})`}
+                  secondary={`Producent: ${device.manufacturer}, Model: ${
+                    device.model
+                  }, Timeline Enabled: ${
+                    device.timelineEnabled ? "Tak" : "Nie"
+                  }`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Grid>
 
         {/* Submit button */}
         <Grid item xs={12}>

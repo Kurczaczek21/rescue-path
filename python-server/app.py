@@ -23,26 +23,33 @@ def calculate_duration(timestamp_list):
 @app.route('/parse', methods=['POST'])
 def parse_file():
     try:
-        # Odbieramy ścieżkę do pliku z POST requesta
+        # Odbieramy ścieżki do plików z POST requesta
         data = request.json
 
-        if not data or 'file_path' not in data:
-            return jsonify({"status": "FAIL", "message": "No file path provided"}), 400
+        # Sprawdzamy, czy podano obie ścieżki
+        if not data or 'records_path' not in data or 'settings_path' not in data:
+            return jsonify({"status": "FAIL", "message": "No records path or settings path provided"}), 400
 
-        file_path = data['file_path']
+        records_path = data['records_path']
+        settings_path = data['settings_path']
 
-        # Sprawdzamy, czy plik istnieje
-        if not os.path.isfile(file_path):
-            return jsonify({"status": "FAIL", "message": f"File {file_path} not found"}), 404
+        # Sprawdzamy, czy pliki istnieją
+        if not os.path.isfile(records_path):
+            return jsonify({"status": "FAIL", "message": f"File {records_path} not found"}), 404
+        if not os.path.isfile(settings_path):
+            return jsonify({"status": "FAIL", "message": f"File {settings_path} not found"}), 404
 
-        # Otwieramy plik JSON
-        with open(file_path, 'r') as file:
-            input_data = json.load(file)
+        # Otwieramy pliki JSON
+        with open(records_path, 'r') as records_file:
+            records_data = json.load(records_file)
+
+        with open(settings_path, 'r') as settings_file:
+            settings_data = json.load(settings_file)
 
         output_data = []
 
-        # Przetwarzanie danych
-        for location in input_data["locations"]:
+        # Przetwarzanie danych z pliku records
+        for location in records_data["locations"]:
             lat = convert_coordinates(location["latitudeE7"])
             lng = convert_coordinates(location["longitudeE7"])
             time = location["timestamp"]
@@ -76,12 +83,28 @@ def parse_file():
                 "deviceTag": device_tag  # Include device tag in the output
             })
 
-        # Tworzenie ścieżki do nowego pliku
-        output_file_path = file_path.replace('.json', '_processed.json')
+        # Przetwarzanie danych z pliku settings
+        devices = []
+        for device in settings_data.get("deviceSettings", []):
+            devices.append({
+                "devicePrettyName": device.get("devicePrettyName"),
+                "platformType": device.get("platformType"),
+                "manufacturer": device["deviceSpec"].get("manufacturer"),
+                "model": device["deviceSpec"].get("model"),
+                "timelineEnabled": settings_data.get("timelineEnabled")
+            })
 
-        # Zapisanie danych do pliku heatmap_data.json
+        # Tworzenie ścieżki do nowego pliku
+        output_file_path = records_path.replace('.json', '_processed.json')
+
+        # Zapisanie danych do pliku
+        processed_data = {
+            "devices": devices,
+            "locations": output_data
+        }
+
         with open(output_file_path, 'w') as outfile:
-            json.dump(output_data, outfile, indent=4)
+            json.dump(processed_data, outfile, indent=4)
 
         # Zwracamy odpowiedź z informacją o sukcesie oraz ścieżką do pliku
         return jsonify({
