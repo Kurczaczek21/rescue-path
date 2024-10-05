@@ -1,6 +1,17 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Grid,
+  TextField,
+  Select,
+  MenuItem,
+  Button,
+  Typography,
+  Box,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
 
 const DateRangeSelector = () => {
   const [startDate, setStartDate] = useState("");
@@ -11,6 +22,7 @@ const DateRangeSelector = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Przechwycenie filePath z poprzedniego komponentu (Map)
   const filePath = location.state?.filePath;
 
   const getAutoSelectedDates = (option) => {
@@ -87,12 +99,10 @@ const DateRangeSelector = () => {
       const response = await axios.post("http://127.0.0.1:5050/filter-data", {
         startDate,
         endDate,
-        file_path: filePath,
+        file_path: filePath, // Przekazanie filePath
       });
 
       let filteredLocations = response.data;
-
-      console.log(response.data);
 
       // Check if the time span is greater than 6 months
       const start = new Date(startDate);
@@ -109,54 +119,83 @@ const DateRangeSelector = () => {
         );
       }
 
-      console.log(filteredLocations);
-
       setFilteredData(filteredLocations);
-      navigate("/map", { state: { locations: filteredLocations } });
+      navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);
     }
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h2>Wybierz zakres dat</h2>
-      <div>
-        <label>Auto-select:</label>
-        <select value={autoSelect} onChange={handleAutoSelectChange}>
-          <option value="">Wybierz opcję</option>
-          <option value="lastYear">Ostatni rok</option>
-          <option value="lastMonth">Ostatni miesiąc</option>
-          <option value="last14Days">Ostatnie 14 dni</option>
-          <option value="last7Days">Ostatnie 7 dni</option>
-          <option value="last3Days">Ostatnie 3 dni</option>
-        </select>
-      </div>
-      <div>
-        <label>Początkowa data:</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => {
-            setStartDate(e.target.value);
-            setAutoSelect("");
-          }}
-        />
-      </div>
-      <div>
-        <label>Końcowa data:</label>
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => {
-            setEndDate(e.target.value);
-            setAutoSelect("");
-          }}
-        />
-      </div>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <button onClick={handleSubmit}>WYKONAJ</button>
-    </div>
+    <Box sx={{ textAlign: "center", mt: 5 }}>
+      <Typography variant="h4" gutterBottom>
+        Wybierz zakres dat
+      </Typography>
+      <Grid container spacing={3} justifyContent="center">
+        {/* Select for Auto-select date range */}
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth>
+            <InputLabel>Auto-wybór dat</InputLabel>
+            <Select value={autoSelect} onChange={handleAutoSelectChange}>
+              <MenuItem value="">Wybierz opcję</MenuItem>
+              <MenuItem value="lastYear">Ostatni rok</MenuItem>
+              <MenuItem value="lastMonth">Ostatni miesiąc</MenuItem>
+              <MenuItem value="last14Days">Ostatnie 14 dni</MenuItem>
+              <MenuItem value="last7Days">Ostatnie 7 dni</MenuItem>
+              <MenuItem value="last3Days">Ostatnie 3 dni</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Start date input */}
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Początkowa data"
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setAutoSelect(""); // Reset auto-select
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        </Grid>
+
+        {/* End date input */}
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Końcowa data"
+            type="date"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setAutoSelect(""); // Reset auto-select
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        </Grid>
+
+        {/* Error message */}
+        {error && (
+          <Grid item xs={12}>
+            <Typography color="error">{error}</Typography>
+          </Grid>
+        )}
+
+        {/* Submit button */}
+        <Grid item xs={12}>
+          <Button variant="contained" color="primary" onClick={handleSubmit}>
+            Wykonaj
+          </Button>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 

@@ -30,29 +30,46 @@ app.use(express.json());
 
 // Endpoint do przesyłania plików
 app.post("/upload", async (req, res) => {
-  if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).send("No files were uploaded.");
+  if (!req.files || !req.files.records_file || !req.files.settings_file) {
+    return res
+      .status(400)
+      .send("Both Records and Settings files must be uploaded.");
   }
 
-  const { file } = req.files;
-  const fileExt = path.extname(file.name).slice(1).toLowerCase();
-  const uniqueFilename = uuidv4() + "." + fileExt; // Generujemy unikalną nazwę
+  const { records_file, settings_file } = req.files;
 
-  // Ścieżka do zapisu
-  const filePath = path.join(FILE_UPLOAD_LOCATION, uniqueFilename);
+  const recordsFileExt = path.extname(records_file.name).slice(1).toLowerCase();
+  const settingsFileExt = path
+    .extname(settings_file.name)
+    .slice(1)
+    .toLowerCase();
+
+  const recordsUniqueFilename = uuidv4() + "." + recordsFileExt; // Unikalna nazwa dla records
+  const settingsUniqueFilename = uuidv4() + "." + settingsFileExt; // Unikalna nazwa dla settings
+
+  const recordsFilePath = path.join(
+    FILE_UPLOAD_LOCATION,
+    recordsUniqueFilename
+  );
+  const settingsFilePath = path.join(
+    FILE_UPLOAD_LOCATION,
+    settingsUniqueFilename
+  );
 
   try {
-    // Przeniesienie pliku do folderu
-    await file.mv(filePath);
+    // Przeniesienie plików do folderu
+    await records_file.mv(recordsFilePath);
+    await settings_file.mv(settingsFilePath);
 
     res.json({
       status: "OK",
-      file_path: filePath,
-      message: `File uploaded successfully!`,
+      records_file_path: recordsFilePath,
+      settings_file_path: settingsFilePath,
+      message: "Files uploaded successfully!",
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).send("Error occurred while uploading the file.");
+    return res.status(500).send("Error occurred while uploading the files.");
   }
 });
 

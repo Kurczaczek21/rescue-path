@@ -19,6 +19,9 @@ const Map = () => {
   const navigate = useNavigate();
   const { locations } = location.state || { locations: [] };
 
+  // Przechowywanie filePath ze stanu
+  const [filePath, setFilePath] = useState(location.state?.filePath || null);
+
   const [map, setMap] = useState(null);
   const [heatmap, setHeatmap] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -128,6 +131,11 @@ const Map = () => {
   };
 
   const handleSubmit = async () => {
+    if (!filePath) {
+      alert("Brak ścieżki pliku!");
+      return;
+    }
+
     if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
       setError("Data końcowa nie może być wcześniejsza niż data początkowa.");
       return;
@@ -137,6 +145,7 @@ const Map = () => {
       const response = await axios.post("http://127.0.0.1:5050/filter-data", {
         startDate,
         endDate,
+        file_path: filePath, // filePath w zapytaniu
       });
 
       let filteredLocations = response.data;
@@ -156,7 +165,7 @@ const Map = () => {
         );
       }
 
-      navigate("/map", { state: { locations: filteredLocations } });
+      navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);
     }
@@ -265,9 +274,10 @@ const Map = () => {
 
       const newHeatmap = new window.google.maps.visualization.HeatmapLayer({
         data: heatMapData,
+        map: showHeatmap ? newMap : null,
         dissipating: true,
-        maxIntensity: 5,
-        radius: 50,
+        maxIntensity: 500,
+        radius: 10,
         opacity: 0.7,
       });
 
