@@ -11,11 +11,6 @@ CORS(app)
 def convert_coordinates(e7_coordinate):
     return e7_coordinate / 1e7
 
-# Funkcja do przeliczenia confidence na wagę (weight) od 50 do 100
-def calculate_weight(confidence):
-    # Mapa wartości confidence (0-100) na zakres (50-100)
-    return 50 + (confidence * 0.5)
-
 # Funkcja do obliczenia czasu w sekundach
 def calculate_duration(timestamp_list):
     if len(timestamp_list) < 2:
@@ -45,33 +40,28 @@ def parse_file():
             input_data = json.load(file)
 
         output_data = []
-        i = 0
 
         # Przetwarzanie danych
         for location in input_data["locations"]:
-            i += 1
-            if i % 10 != 0:
-                continue
-
             lat = convert_coordinates(location["latitudeE7"])
             lng = convert_coordinates(location["longitudeE7"])
             time = location["timestamp"]
             source = location.get("source", "UNKNOWN")
-            weight = 50  # Minimalna waga
+            accuracy = location.get("accuracy", 0)  # Get accuracy
             duration = 0
 
-            # Obliczanie wagi i czasu
-            if "activity" in location:
-                activity_data = location["activity"][0]  # Weź pierwszy zestaw aktywności
-                if "activity" in activity_data:
-                    # Oblicz średnią pewność aktywności
-                    average_confidence = sum(activity["confidence"] for activity in activity_data["activity"]) / len(activity_data["activity"])
-                    # Przelicz wagę na zakres 50-100
-                    # weight = calculate_weight(average_confidence)
+            # Set weight based on accuracy
+            if accuracy > 200:
+                weight = 30
+            else:
+                weight = 200 - accuracy
 
-                # Oblicz czas trwania (duration) dla danej lokalizacji
+            # Oblicz czas trwania (duration) dla danej lokalizacji
+            if "activity" in location:
                 timestamps = [activity["timestamp"] for activity in location["activity"]]
                 duration = calculate_duration(timestamps)
+
+            device_tag = location.get("deviceTag", None)  # Get device tag
 
             # Dodaj przetworzone dane do listy wynikowej
             output_data.append({
@@ -79,10 +69,11 @@ def parse_file():
                     "lat": lat,
                     "lng": lng
                 },
-                "weight": 1,
+                "weight": weight,
                 "time": time,
                 "duration": duration,
-                "source": source
+                "source": source,
+                "deviceTag": device_tag  # Include device tag in the output
             })
 
         # Tworzenie ścieżki do nowego pliku

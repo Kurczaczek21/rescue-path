@@ -65,7 +65,6 @@ app.post("/filter-data", (req, res) => {
   }
 
   // Wczytanie pliku JSON z danymi
-
   const filePath = file_path;
 
   fs.readFile(filePath, "utf8", (err, data) => {
@@ -85,7 +84,29 @@ app.post("/filter-data", (req, res) => {
       return timestamp >= start && timestamp <= end;
     });
 
-    res.json(filteredData);
+    // Obliczanie różnicy czasu między startDate a endDate w miesiącach
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const timeSpanInMonths =
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth());
+
+    let reducedData = filteredData;
+
+    // Usuwanie punktów w zależności od zakresu dat
+    if (timeSpanInMonths > 12) {
+      // Jeśli zakres dat jest większy niż rok, usuń co drugi punkt
+      reducedData = filteredData.filter((_, index) => index % 2 !== 0);
+    } else if (timeSpanInMonths > 6) {
+      // Jeśli zakres dat jest większy niż 6 miesięcy, usuń co trzeci punkt
+      reducedData = filteredData.filter((_, index) => index % 3 !== 0);
+    } else if (timeSpanInMonths > 1) {
+      // Jeśli zakres dat jest większy niż miesiąc, usuń co czwarty punkt
+      reducedData = filteredData.filter((_, index) => index % 4 !== 0);
+    }
+
+    // Zwrócenie przefiltrowanych i zredukowanych danych
+    res.json(reducedData);
   });
 });
 
