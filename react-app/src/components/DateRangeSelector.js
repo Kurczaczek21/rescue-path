@@ -16,20 +16,21 @@ import {
   ListItemText,
   Checkbox,
   ListItemIcon,
+  CircularProgress,
 } from "@mui/material";
 
 const DateRangeSelector = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [filteredData, setFilteredData] = useState(null);
   const [autoSelect, setAutoSelect] = useState("");
   const [error, setError] = useState(null);
   const [devices, setDevices] = useState([]);
   const [selectedDevices, setSelectedDevices] = useState([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get filePath from previous component (Map)
   const filePath = location.state?.filePath;
 
   const getAutoSelectedDates = (option) => {
@@ -92,6 +93,11 @@ const DateRangeSelector = () => {
   };
 
   const handleSubmit = async () => {
+    if (selectedDevices.length === 0) {
+      setError("Musisz wybrać co najmniej jedno urządzenie.");
+      return;
+    }
+
     if (!filePath) {
       alert("Brak ścieżki pliku!");
       return;
@@ -102,17 +108,25 @@ const DateRangeSelector = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
       const response = await axios.post("http://127.0.0.1:5050/filter-data", {
         startDate,
         endDate,
         file_path: filePath,
-        selectedDevices, // Send selected devices
+        selectedDevices,
+      });
+
+      console.log({
+        startDate,
+        endDate,
+        file_path: filePath,
+        selectedDevices,
       });
 
       let filteredLocations = response.data;
+      console.log(filteredLocations);
 
-      // Check if the time span is greater than 6 months
       const start = new Date(startDate);
       const end = new Date(endDate);
       const timeSpanInMonths =
@@ -121,21 +135,21 @@ const DateRangeSelector = () => {
         start.getMonth();
 
       if (timeSpanInMonths > 6) {
-        // Remove every third point
         filteredLocations = filteredLocations.filter(
           (_, index) => index % 2 !== 0
         );
       }
 
-      setFilteredData(filteredLocations);
       navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // Function to fetch devices from JSON file
   const fetchDevices = async () => {
+    setLoadingDevices(true);
     try {
       const response = await axios.get(`http://127.0.0.1:5050/devices`, {
         params: { file_path: filePath },
@@ -143,10 +157,11 @@ const DateRangeSelector = () => {
       setDevices(response.data.devices || []);
     } catch (error) {
       console.error("Błąd podczas pobierania urządzeń:", error);
+    } finally {
+      setLoadingDevices(false);
     }
   };
 
-  // Fetch devices on component mount
   useEffect(() => {
     if (filePath) {
       fetchDevices();
@@ -196,7 +211,7 @@ const DateRangeSelector = () => {
             value={startDate}
             onChange={(e) => {
               setStartDate(e.target.value);
-              setAutoSelect(""); // Reset auto-select
+              setAutoSelect("");
             }}
             InputLabelProps={{
               shrink: true,
@@ -231,38 +246,47 @@ const DateRangeSelector = () => {
         {/* Devices list */}
         <Grid item xs={12}>
           <Typography variant="h6">Urządzenia:</Typography>
-          <List>
-            {devices.map((device, index) => (
-              <ListItem
-                key={index}
-                button
-                onClick={() => handleDeviceToggle(device)}
-              >
-                <ListItemIcon>
-                  <Checkbox
-                    edge="start"
-                    checked={selectedDevices.indexOf(device.deviceTag) !== -1}
-                    tabIndex={-1}
-                    disableRipple
+          {loadingDevices ? (
+            <CircularProgress />
+          ) : (
+            <List>
+              {devices.map((device, index) => (
+                <ListItem
+                  key={index}
+                  button
+                  onClick={() => handleDeviceToggle(device)}
+                >
+                  <ListItemIcon>
+                    <Checkbox
+                      edge="start"
+                      checked={selectedDevices.indexOf(device.deviceTag) !== -1}
+                      tabIndex={-1}
+                      disableRipple
+                    />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={`${device.devicePrettyName} (${device.platformType})`}
+                    secondary={`Producent: ${device.manufacturer}, Model: ${
+                      device.model
+                    }, Timeline Enabled: ${
+                      device.timelineEnabled ? "Tak" : "Nie"
+                    }`}
                   />
-                </ListItemIcon>
-                <ListItemText
-                  primary={`${device.devicePrettyName} (${device.platformType})`}
-                  secondary={`Producent: ${device.manufacturer}, Model: ${
-                    device.model
-                  }, Timeline Enabled: ${
-                    device.timelineEnabled ? "Tak" : "Nie"
-                  }`}
-                />
-              </ListItem>
-            ))}
-          </List>
+                </ListItem>
+              ))}
+            </List>
+          )}
         </Grid>
 
         {/* Submit button */}
         <Grid item xs={12}>
-          <Button variant="contained" color="primary" onClick={handleSubmit}>
-            Wykonaj
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? <CircularProgress size={24} /> : "Wykonaj"}
           </Button>
         </Grid>
       </Grid>

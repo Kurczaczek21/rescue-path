@@ -2,6 +2,16 @@ import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useDropzone } from "react-dropzone";
+import {
+  Box,
+  Button,
+  Typography,
+  Container,
+  CircularProgress,
+  Grid,
+  Paper,
+} from "@mui/material";
+import { CloudUpload } from "@mui/icons-material";
 
 const FileUpload = () => {
   const [loading, setLoading] = useState(false);
@@ -48,11 +58,10 @@ const FileUpload = () => {
     setResult(null);
 
     try {
+      console.log("Uploading file");
       const formData = new FormData();
       formData.append("records_file", recordsFile);
       formData.append("settings_file", settingsFile);
-
-      console.log(formData);
 
       const uploadResponse = await axios.post(
         "http://127.0.0.1:5050/upload",
@@ -63,18 +72,17 @@ const FileUpload = () => {
           },
         }
       );
+      console.log("File uploaded");
 
       const { records_file_path, settings_file_path } = uploadResponse.data;
 
-      console.log(records_file_path);
-      console.log(settings_file_path);
-
       const parseResponse = await axios.post("http://127.0.0.1:5000/parse", {
-        records_path: records_file_path, 
+        records_path: records_file_path,
         settings_path: settings_file_path,
       });
 
       const processedFilePath = parseResponse.data.file_path;
+      console.log("File processed");
 
       setResult("OK");
 
@@ -88,52 +96,86 @@ const FileUpload = () => {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h2>Wczytaj pliki</h2>
+    <Container maxWidth="md" sx={{ marginTop: "50px", textAlign: "center" }}>
+      <Typography variant="h4" gutterBottom>
+        Wczytaj pliki
+      </Typography>
+      <Typography variant="subtitle1" gutterBottom>
+        Prześlij wymagane pliki do kontynuowania.
+      </Typography>
 
-      <div {...getRootPropsRecords()} style={dropzoneStyle}>
-        <input {...getInputPropsRecords()} />
-        {isDragActiveRecords ? (
-          <p>Upuść plik Records.json tutaj...</p>
-        ) : (
-          <p>
-            {recordsFile
-              ? `Wybrano: ${recordsFile.name}`
-              : "Przeciągnij plik Records.json tutaj lub kliknij, aby wybrać"}
-          </p>
-        )}
-      </div>
+      <Grid container spacing={4} justifyContent="center">
+        {/* Strefa dropowania pliku Records.json */}
+        <Grid item xs={12} sm={6}>
+          <Paper
+            elevation={3}
+            sx={{
+              padding: 3,
+              border: "2px dashed #1976d2",
+              textAlign: "center",
+            }}
+            {...getRootPropsRecords()}
+          >
+            <input {...getInputPropsRecords()} />
+            <CloudUpload sx={{ fontSize: 40, color: "#1976d2" }} />
+            <Typography variant="h6">
+              {recordsFile
+                ? `Wybrano: ${recordsFile.name}`
+                : isDragActiveRecords
+                ? "Upuść plik Records.json tutaj..."
+                : "Przeciągnij plik Records.json tutaj lub kliknij, aby wybrać"}
+            </Typography>
+          </Paper>
+        </Grid>
 
-      <div {...getRootPropsSettings()} style={dropzoneStyle}>
-        <input {...getInputPropsSettings()} />
-        {isDragActiveSettings ? (
-          <p>Upuść plik Settings.json tutaj...</p>
-        ) : (
-          <p>
-            {settingsFile
-              ? `Wybrano: ${settingsFile.name}`
-              : "Przeciągnij plik Settings.json tutaj lub kliknij, aby wybrać"}
-          </p>
-        )}
-      </div>
+        {/* Strefa dropowania pliku Settings.json */}
+        <Grid item xs={12} sm={6}>
+          <Paper
+            elevation={3}
+            sx={{
+              padding: 3,
+              border: "2px dashed #1976d2",
+              textAlign: "center",
+            }}
+            {...getRootPropsSettings()}
+          >
+            <input {...getInputPropsSettings()} />
+            <CloudUpload sx={{ fontSize: 40, color: "#1976d2" }} />
+            <Typography variant="h6">
+              {settingsFile
+                ? `Wybrano: ${settingsFile.name}`
+                : isDragActiveSettings
+                ? "Upuść plik Settings.json tutaj..."
+                : "Przeciągnij plik Settings.json tutaj lub kliknij, aby wybrać"}
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
 
-      <button
-        onClick={handleUpload}
-        disabled={loading || !recordsFile || !settingsFile}
-      >
-        {loading ? "Ładowanie..." : "Wyślij pliki"}
-      </button>
-      {result && <p>Wynik: {result}</p>}
-    </div>
+      <Box mt={4}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleUpload}
+          disabled={loading || !recordsFile || !settingsFile}
+          startIcon={loading && <CircularProgress size={20} />}
+          sx={{ paddingX: 5, borderRadius: 3 }}
+        >
+          {loading ? "Ładowanie..." : "Wyślij pliki"}
+        </Button>
+      </Box>
+
+      {result && (
+        <Typography
+          variant="h6"
+          color={result === "OK" ? "green" : "red"}
+          mt={2}
+        >
+          Wynik: {result}
+        </Typography>
+      )}
+    </Container>
   );
-};
-
-const dropzoneStyle = {
-  border: "2px dashed #007bff",
-  padding: "20px",
-  borderRadius: "5px",
-  cursor: "pointer",
-  marginBottom: "20px",
 };
 
 export default FileUpload;

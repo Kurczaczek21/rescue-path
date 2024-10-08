@@ -2,33 +2,29 @@ const express = require("express");
 const fileUpload = require("express-fileupload");
 const path = require("path");
 const fs = require("fs");
-const cors = require("cors"); // Importujemy bibliotekę CORS
+const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 const port = 5050;
+const MAX_POINTS = 62000;
 
-// Konfiguracja CORS - zezwalamy na połączenia z React app na porcie 3000
 app.use(
   cors({
-    origin: "http://localhost:3000", // Domena Reacta
-    methods: ["GET", "POST"], // Metody, które chcemy obsługiwać
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
   })
 );
 
-// Konfiguracja lokalizacji do zapisywania plików
 const FILE_UPLOAD_LOCATION = path.join(__dirname, "uploaded_files");
 
-// Tworzymy katalog na pliki, jeśli nie istnieje
 if (!fs.existsSync(FILE_UPLOAD_LOCATION)) {
   fs.mkdirSync(FILE_UPLOAD_LOCATION, { recursive: true });
 }
 
-// Middleware do obsługi przesyłania plików
 app.use(fileUpload());
 app.use(express.json());
 
-// Endpoint do przesyłania plików
 app.post("/upload", async (req, res) => {
   if (!req.files || !req.files.records_file || !req.files.settings_file) {
     return res
@@ -44,8 +40,8 @@ app.post("/upload", async (req, res) => {
     .slice(1)
     .toLowerCase();
 
-  const recordsUniqueFilename = uuidv4() + "." + recordsFileExt; // Unikalna nazwa dla records
-  const settingsUniqueFilename = uuidv4() + "." + settingsFileExt; // Unikalna nazwa dla settings
+  const recordsUniqueFilename = uuidv4() + "." + recordsFileExt;
+  const settingsUniqueFilename = uuidv4() + "." + settingsFileExt;
 
   const recordsFilePath = path.join(
     FILE_UPLOAD_LOCATION,
@@ -57,7 +53,6 @@ app.post("/upload", async (req, res) => {
   );
 
   try {
-    // Przeniesienie plików do folderu
     await records_file.mv(recordsFilePath);
     await settings_file.mv(settingsFilePath);
 
@@ -100,33 +95,36 @@ app.post("/filter-data", (req, res) => {
       return res.status(400).json({ error: "Brak danych lokalizacji w pliku" });
     }
 
-    // Filtruj dane na podstawie zakresu dat i wybranych urządzeń
-    const filteredData = parsedData.locations.filter((item) => {
+    let filteredData = parsedData.locations.filter((item) => {
       const timestamp = new Date(item.time);
       const start = new Date(startDate);
       const end = new Date(endDate);
       const isInDateRange = timestamp >= start && timestamp <= end;
       const isInSelectedDevices =
         selectedDevices.length === 0 ||
-        selectedDevices.includes(item.deviceTag); // Check if the device is selected
+        selectedDevices.includes(item.deviceTag);
 
       return isInDateRange && isInSelectedDevices;
     });
 
+    // Sprawdzenie liczby punktów
+    if (filteredData.length > MAX_POINTS) {
+      const pointsToRemove = filteredData.length - MAX_POINTS;
+      const step = Math.ceil(filteredData.length / pointsToRemove);
+
+      filteredData = filteredData.filter((_, index) => index % step !== 0);
+    }
     res.json(filteredData);
   });
 });
 
-// Endpoint do pobierania urządzeń z pliku JSON
 app.get("/devices", (req, res) => {
   const { file_path } = req.query;
 
-  // Sprawdzenie, czy podano ścieżkę do pliku
   if (!file_path) {
     return res.status(400).json({ error: "Brak ścieżki do pliku" });
   }
 
-  // Wczytanie pliku JSON z danymi
   fs.readFile(file_path, "utf8", (err, data) => {
     if (err) {
       return res
@@ -137,8 +135,6 @@ app.get("/devices", (req, res) => {
     try {
       const parsedData = JSON.parse(data);
 
-      // Zwracamy dane o urządzeniach
-      // Zakładam, że dane o urządzeniach są w formacie { devices: [...] }
       res.json({ devices: parsedData.devices || [] });
     } catch (parseError) {
       return res.status(500).json({ error: "Błąd podczas analizy pliku JSON" });
@@ -146,7 +142,6 @@ app.get("/devices", (req, res) => {
   });
 });
 
-// Uruchamiamy serwer
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });

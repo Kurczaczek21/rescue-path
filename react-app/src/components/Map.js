@@ -10,6 +10,7 @@ import {
   TextField,
   Select,
   MenuItem,
+  Checkbox,
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -19,19 +20,19 @@ const Map = () => {
   const navigate = useNavigate();
   const { locations } = location.state || { locations: [] };
 
-  // Przechowywanie filePath ze stanu
   const [filePath, setFilePath] = useState(location.state?.filePath || null);
-
   const [map, setMap] = useState(null);
   const [heatmap, setHeatmap] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showCircles, setShowCircles] = useState(false);
   const [isCircleButtonDisabled, setIsCircleButtonDisabled] = useState(false);
 
-  // Data range selector
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [autoSelect, setAutoSelect] = useState("");
+  const [devices, setDevices] = useState([]);
+  const [selectedDevices, setSelectedDevices] = useState([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
   const [error, setError] = useState(null);
 
   const defaultCenter = {
@@ -63,12 +64,13 @@ const Map = () => {
       .map((loc) => new Date(loc.time))
       .filter((time) => !isNaN(time));
 
-    if (times.length < 2) return 0;
+    if (times.length < 2) return "Brak danych";
 
     const minTime = Math.min(...times);
     const maxTime = Math.max(...times);
-    const timeDifferenceInMs = maxTime - minTime;
-    return timeDifferenceInMs / (1000 * 60 * 60 * 24);
+    const startDate = new Date(minTime).toISOString().split("T")[0];
+    const endDate = new Date(maxTime).toISOString().split("T")[0];
+    return `${startDate} - ${endDate}`;
   };
 
   const getAutoSelectedDates = (option) => {
@@ -93,16 +95,19 @@ const Map = () => {
         end = today;
         break;
       case "last14Days":
-        start = new Date(today.setDate(today.getDate() - 14));
-        end = new Date();
+        start = new Date(today);
+        start.setDate(start.getDate() - 14);
+        end = today;
         break;
       case "last7Days":
-        start = new Date(today.setDate(today.getDate() - 7));
-        end = new Date();
+        start = new Date(today);
+        start.setDate(start.getDate() - 7);
+        end = today;
         break;
       case "last3Days":
-        start = new Date(today.setDate(today.getDate() - 3));
-        end = new Date();
+        start = new Date(today);
+        start.setDate(start.getDate() - 3);
+        end = today;
         break;
       default:
         start = "";
@@ -110,8 +115,8 @@ const Map = () => {
     }
 
     return {
-      start: start.toISOString().split("T")[0],
-      end: end.toISOString().split("T")[0],
+      start: start ? start.toISOString().split("T")[0] : "",
+      end: end ? end.toISOString().split("T")[0] : "",
     };
   };
 
@@ -130,7 +135,47 @@ const Map = () => {
     }
   };
 
+  const fetchDevices = async () => {
+    setLoadingDevices(true);
+    try {
+      console.log("GET DEV");
+
+      const response = await axios.get(`http://127.0.0.1:5050/devices`, {
+        params: { file_path: filePath },
+      });
+      setDevices(response.data.devices || []);
+    } catch (error) {
+      console.error("Błąd podczas pobierania urządzeń:", error);
+    } finally {
+      setLoadingDevices(false);
+    }
+  };
+
+  useEffect(() => {
+    if (filePath) {
+      fetchDevices();
+    }
+  }, [filePath]);
+
+  const handleDeviceToggle = (device) => {
+    const currentIndex = selectedDevices.indexOf(device.deviceTag);
+    const newSelectedDevices = [...selectedDevices];
+
+    if (currentIndex === -1) {
+      newSelectedDevices.push(device.deviceTag);
+    } else {
+      newSelectedDevices.splice(currentIndex, 1);
+    }
+
+    setSelectedDevices(newSelectedDevices);
+  };
+
   const handleSubmit = async () => {
+    if (selectedDevices.length === 0) {
+      setError("Musisz wybrać co najmniej jedno urządzenie.");
+      return;
+    }
+
     if (!filePath) {
       alert("Brak ścieżki pliku!");
       return;
@@ -141,26 +186,43 @@ const Map = () => {
       return;
     }
 
+    // setSubmitting(true);
     try {
+      console.log("filering");
+
       const response = await axios.post("http://127.0.0.1:5050/filter-data", {
         startDate,
         endDate,
-        file_path: filePath, // filePath w zapytaniu
+        file_path: filePath,
+        selectedDevices, // Zaznaczone urządzenia
       });
 
       let filteredLocations = response.data;
+      console.log(filteredLocations);
 
-      // Check if the time span is greater than 6 months
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const timeSpanInMonths =
-        (end.getFullYear() - start.getFullYear()) * 12 +
-        end.getMonth() -
-        start.getMonth();
+      // const start = new Date(startDate);
+      // const end = new Date(endDate);
+      // const timeSpanInMonths =
+      //   (end.getFullYear() - start.getFullYear()) * 12 +
+      //   end.getMonth() -
+      //   start.getMonth();
+
+      // if (timeSpanInMonths > 6) {
+      //   filteredLocations = filteredLocations.filter(
+      //     (_, index) => index % 2 !== 0
+      //   );
+      // }
+
+      console.log("AAAs");
+
+      console.log(filePath);
+      console.log(filteredLocations);
 
       navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);
+    } finally {
+      // setSubmitting(false);
     }
   };
 
@@ -168,8 +230,7 @@ const Map = () => {
     loadGoogleMapsScript(() => {
       if (!locations.length || !window.google) return;
 
-      const dateRange = calculateDateRange();
-      if (dateRange > 40) {
+      if (locations.length > 15000) {
         setIsCircleButtonDisabled(true);
       } else {
         setIsCircleButtonDisabled(false);
@@ -309,7 +370,7 @@ const Map = () => {
             Opcje mapy
           </Typography>
 
-          {/* Liczba punktów i zakres dat */}
+          {/* Number of points and date range */}
           <Typography variant="body1">
             Liczba punktów: {locations.length}
           </Typography>
@@ -320,7 +381,7 @@ const Map = () => {
 
           <Divider style={{ margin: "20px 0" }} />
 
-          {/* Guziki do map */}
+          {/* Map buttons */}
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Button
@@ -346,7 +407,7 @@ const Map = () => {
 
           <Divider style={{ margin: "20px 0" }} />
 
-          {/* Formularz do wyboru dat */}
+          {/* Date selection form */}
           <Box mt={2}>
             <Typography variant="h6">Wybierz zakres dat</Typography>
 
@@ -405,6 +466,32 @@ const Map = () => {
             >
               Generuj mapę
             </Button>
+          </Box>
+          <Divider style={{ margin: "20px 0" }} />
+
+          <Box mt={2}>
+            <Typography variant="h6">Wybierz urządzenia</Typography>
+            {loadingDevices ? (
+              <Typography>Ładowanie urządzeń...</Typography>
+            ) : devices.length > 0 ? (
+              <div>
+                {devices.map((device) => (
+                  <Box
+                    key={device.deviceTag}
+                    display="flex"
+                    alignItems="center"
+                  >
+                    <Checkbox
+                      checked={selectedDevices.includes(device.deviceTag)}
+                      onChange={() => handleDeviceToggle(device)}
+                    />
+                    <Typography>{device.deviceTag}</Typography>
+                  </Box>
+                ))}
+              </div>
+            ) : (
+              <Typography>Brak dostępnych urządzeń.</Typography>
+            )}
           </Box>
         </Box>
       </Drawer>
