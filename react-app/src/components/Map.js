@@ -11,6 +11,7 @@ import {
   Select,
   MenuItem,
   Checkbox,
+  Slider,
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +26,10 @@ const Map = () => {
   const [heatmap, setHeatmap] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showCircles, setShowCircles] = useState(false);
+  const [showPoints, setShowPoints] = useState(false);
   const [isCircleButtonDisabled, setIsCircleButtonDisabled] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [currentAccuracy, setCurrentAccuracy] = useState(200);
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -200,18 +204,18 @@ const Map = () => {
       let filteredLocations = response.data;
       console.log(filteredLocations);
 
-      // const start = new Date(startDate);
-      // const end = new Date(endDate);
-      // const timeSpanInMonths =
-      //   (end.getFullYear() - start.getFullYear()) * 12 +
-      //   end.getMonth() -
-      //   start.getMonth();
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const timeSpanInMonths =
+        (end.getFullYear() - start.getFullYear()) * 12 +
+        end.getMonth() -
+        start.getMonth();
 
-      // if (timeSpanInMonths > 6) {
-      //   filteredLocations = filteredLocations.filter(
-      //     (_, index) => index % 2 !== 0
-      //   );
-      // }
+      if (timeSpanInMonths > 6) {
+        filteredLocations = filteredLocations.filter(
+          (_, index) => index % 2 !== 0
+        );
+      }
 
       console.log("AAAs");
 
@@ -224,6 +228,10 @@ const Map = () => {
     } finally {
       // setSubmitting(false);
     }
+  };
+
+  const handleApplyClick = () => {
+    setApplied(!applied);
   };
 
   useEffect(() => {
@@ -250,6 +258,9 @@ const Map = () => {
 
       const circles = locations
         .map((loc) => {
+          if (loc.weight > currentAccuracy) {
+            return null;
+          }
           const lat = parseFloat(loc.location?.lat);
           const lng = parseFloat(loc.location?.lng);
           const signalType = loc.source || "OTHER";
@@ -277,7 +288,7 @@ const Map = () => {
               strokeOpacity: 0.8,
               strokeWeight: 2,
               fillColor: circleColor,
-              fillOpacity: 0.35,
+              fillOpacity: 0.05,
               map: showCircles ? newMap : null,
               center: position,
               radius: loc.weight || 100,
@@ -294,6 +305,7 @@ const Map = () => {
                     <p><strong>Device Tag:</strong> ${
                       loc.deviceTag || "N/A"
                     }</p>
+                    <p><strong>Accuracy:</strong> ${loc.weight || "N/A"}</p>
                   </div>
                 `,
               });
@@ -314,6 +326,74 @@ const Map = () => {
         newMap.setCenter(defaultCenter);
       }
 
+      const points = locations
+        .map((loc) => {
+          const lat = parseFloat(loc.location?.lat);
+          const lng = parseFloat(loc.location?.lng);
+
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const position = new window.google.maps.LatLng(lat, lng);
+
+            let circleColor;
+            switch (loc.source.toUpperCase()) {
+              case "WIFI":
+                circleColor = "#0000FF";
+                break;
+              case "CELL":
+                circleColor = "#008000";
+                break;
+              case "GPS":
+                circleColor = "#FF0000";
+                break;
+              default:
+                circleColor = "#000000";
+            }
+
+            const marker = new window.google.maps.Circle({
+              map: showPoints ? newMap : null,
+              strokeColor: circleColor,
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: circleColor,
+              fillOpacity: 0.35,
+              map: showPoints ? newMap : null,
+
+              center: position,
+              radius: 20,
+            });
+
+            marker.addListener("click", () => {
+              const infoWindow = new window.google.maps.InfoWindow({
+                content: `
+                  <div>
+                    <p><strong>Latitude:</strong> ${lat}</p>
+                    <p><strong>Longitude:</strong> ${lng}</p>
+                    <p><strong>Time:</strong> ${loc.time || "N/A"}</p>
+                    <p><strong>Device Source:</strong> ${loc.source}</p>
+                    <p><strong>Device Tag:</strong> ${
+                      loc.deviceTag || "N/A"
+                    }</p>
+                    <p><strong>Accuracy:</strong> ${loc.weight || "N/A"}</p>
+                  </div>
+                `,
+              });
+              infoWindow.setPosition(position);
+              infoWindow.open(newMap);
+            });
+
+            bounds.extend(position);
+            return marker;
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      if (locations.length > 0) {
+        newMap.fitBounds(bounds);
+      } else {
+        newMap.setCenter(defaultCenter);
+      }
+
       const heatMapData = locations
         .map((loc) => {
           const lat = parseFloat(loc.location?.lat);
@@ -322,7 +402,7 @@ const Map = () => {
           if (!isNaN(lat) && !isNaN(lng)) {
             return {
               location: new window.google.maps.LatLng(lat, lng),
-              weight: loc.weight || 1,
+              weight: 1,
             };
           }
           return null;
@@ -333,14 +413,14 @@ const Map = () => {
         data: heatMapData,
         map: showHeatmap ? newMap : null,
         dissipating: true,
-        maxIntensity: 500,
-        radius: 10,
+        maxIntensity: 10,
+        radius: 20,
         opacity: 0.7,
       });
 
       setHeatmap(newHeatmap);
     });
-  }, [locations, showCircles]);
+  }, [locations, showCircles, showPoints, applied]);
 
   const toggleHeatmap = () => {
     if (showHeatmap) {
@@ -349,6 +429,10 @@ const Map = () => {
       heatmap?.setMap(map);
     }
     setShowHeatmap(!showHeatmap);
+  };
+
+  const togglePoints = () => {
+    setShowPoints(!showPoints);
   };
 
   return (
@@ -401,6 +485,37 @@ const Map = () => {
                 disabled={isCircleButtonDisabled}
               >
                 {showCircles ? "Ukryj punkty" : "Pokaż punkty"}
+              </Button>
+              {/* Suwak do zmiany currentAccuracy */}
+              <Typography variant="body1">
+                Ustaw dokładność: {currentAccuracy}
+              </Typography>
+              <Slider
+                value={currentAccuracy}
+                min={50}
+                max={1000}
+                step={50}
+                onChange={(e, value) => setCurrentAccuracy(value)}
+                disabled={!showCircles}
+                aria-labelledby="accuracy-slider"
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleApplyClick}
+                disabled={!showCircles}
+                sx={{ mt: 2 }}
+              >
+                Apply
+              </Button>
+            </Grid>
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={togglePoints}
+              >
+                {showPoints ? "Ukryj markery" : "Pokaż markery"}
               </Button>
             </Grid>
           </Grid>
