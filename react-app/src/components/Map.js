@@ -12,6 +12,7 @@ import {
   MenuItem,
   Checkbox,
   Slider,
+  CircularProgress,
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -30,6 +31,7 @@ const Map = () => {
   const [isCircleButtonDisabled, setIsCircleButtonDisabled] = useState(false);
   const [applied, setApplied] = useState(false);
   const [currentAccuracy, setCurrentAccuracy] = useState(200);
+  const [submitting, setSubmitting] = useState(false);
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -142,8 +144,6 @@ const Map = () => {
   const fetchDevices = async () => {
     setLoadingDevices(true);
     try {
-      console.log("GET DEV");
-
       const response = await axios.get(`http://127.0.0.1:5050/devices`, {
         params: { file_path: filePath },
       });
@@ -190,7 +190,7 @@ const Map = () => {
       return;
     }
 
-    // setSubmitting(true);
+    setSubmitting(true);
     try {
       console.log("filering");
 
@@ -202,31 +202,12 @@ const Map = () => {
       });
 
       let filteredLocations = response.data;
-      console.log(filteredLocations);
-
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const timeSpanInMonths =
-        (end.getFullYear() - start.getFullYear()) * 12 +
-        end.getMonth() -
-        start.getMonth();
-
-      if (timeSpanInMonths > 6) {
-        filteredLocations = filteredLocations.filter(
-          (_, index) => index % 2 !== 0
-        );
-      }
-
-      console.log("AAAs");
-
-      console.log(filePath);
-      console.log(filteredLocations);
 
       navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);
     } finally {
-      // setSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -325,6 +306,8 @@ const Map = () => {
       } else {
         newMap.setCenter(defaultCenter);
       }
+
+      console.log(locations.length);
 
       const points = locations
         .map((loc) => {
@@ -514,6 +497,7 @@ const Map = () => {
                 variant="contained"
                 color="secondary"
                 onClick={togglePoints}
+                disabled={!showPoints}
               >
                 {showPoints ? "Ukryj markery" : "Pokaż markery"}
               </Button>
@@ -577,9 +561,14 @@ const Map = () => {
               variant="contained"
               color="primary"
               onClick={handleSubmit}
+              disabled={submitting}
               sx={{ mt: 2 }}
             >
-              Generuj mapę
+              {submitting ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Generuj nową mapę"
+              )}
             </Button>
           </Box>
           <Divider style={{ margin: "20px 0" }} />

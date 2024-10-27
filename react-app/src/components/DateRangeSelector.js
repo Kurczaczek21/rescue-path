@@ -117,29 +117,7 @@ const DateRangeSelector = () => {
         selectedDevices,
       });
 
-      console.log({
-        startDate,
-        endDate,
-        file_path: filePath,
-        selectedDevices,
-      });
-
       let filteredLocations = response.data;
-      console.log(filteredLocations);
-
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const timeSpanInMonths =
-        (end.getFullYear() - start.getFullYear()) * 12 +
-        end.getMonth() -
-        start.getMonth();
-
-      if (timeSpanInMonths > 6) {
-        filteredLocations = filteredLocations.filter(
-          (_, index) => index % 2 !== 0
-        );
-      }
-
       navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);

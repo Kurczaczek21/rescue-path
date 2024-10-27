@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 const port = 5050;
-const MAX_POINTS = 62000;
+const MAX_POINTS = 60000;
 
 app.use(
   cors({
@@ -107,13 +107,17 @@ app.post("/filter-data", (req, res) => {
       return isInDateRange && isInSelectedDevices;
     });
 
-    // Sprawdzenie liczby punktów
     if (filteredData.length > MAX_POINTS) {
-      const pointsToRemove = filteredData.length - MAX_POINTS;
-      const step = Math.ceil(filteredData.length / pointsToRemove);
-
-      filteredData = filteredData.filter((_, index) => index % step !== 0);
+      const excessRatio = filteredData.length / MAX_POINTS;
+      let step = Math.floor(excessRatio);
+      while (filteredData.length > MAX_POINTS) {
+        filteredData = filteredData.filter((_, index) => index % step !== 0);
+        if (filteredData.length > MAX_POINTS) {
+          step++;
+        }
+      }
     }
+
     res.json(filteredData);
   });
 });

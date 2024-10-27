@@ -49,11 +49,8 @@ def parse_file():
             source = location.get("source", "UNKNOWN")
             accuracy = location.get("accuracy", 0)
             duration = 0
-
-            if accuracy > 200:
-                weight = 30
-            else:
-                weight = 200 - accuracy
+            weight = accuracy
+            
 
             if "activity" in location:
                 timestamps = [activity["timestamp"] for activity in location["activity"]]
