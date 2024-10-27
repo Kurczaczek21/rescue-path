@@ -97,10 +97,10 @@ const FileUpload = () => {
 
   return (
     <Container maxWidth="md" sx={{ marginTop: "50px", textAlign: "center" }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom color="#2E7D32">
         Wczytaj pliki
       </Typography>
-      <Typography variant="subtitle1" gutterBottom>
+      <Typography variant="subtitle1" gutterBottom color="#546E7A">
         Prześlij wymagane pliki do kontynuowania.
       </Typography>
 
@@ -111,14 +111,15 @@ const FileUpload = () => {
             elevation={3}
             sx={{
               padding: 3,
-              border: "2px dashed #1976d2",
+              border: "2px dashed #4CAF50",
               textAlign: "center",
+              backgroundColor: "#E8F5E9", // Jasnozielone tło
             }}
             {...getRootPropsRecords()}
           >
             <input {...getInputPropsRecords()} />
-            <CloudUpload sx={{ fontSize: 40, color: "#1976d2" }} />
-            <Typography variant="h6">
+            <CloudUpload sx={{ fontSize: 40, color: "#4CAF50" }} />
+            <Typography variant="h6" color="#388E3C">
               {recordsFile
                 ? `Wybrano: ${recordsFile.name}`
                 : isDragActiveRecords
@@ -134,14 +135,15 @@ const FileUpload = () => {
             elevation={3}
             sx={{
               padding: 3,
-              border: "2px dashed #1976d2",
+              border: "2px dashed #4CAF50",
               textAlign: "center",
+              backgroundColor: "#E8F5E9", // Jasnozielone tło
             }}
             {...getRootPropsSettings()}
           >
             <input {...getInputPropsSettings()} />
-            <CloudUpload sx={{ fontSize: 40, color: "#1976d2" }} />
-            <Typography variant="h6">
+            <CloudUpload sx={{ fontSize: 40, color: "#4CAF50" }} />
+            <Typography variant="h6" color="#388E3C">
               {settingsFile
                 ? `Wybrano: ${settingsFile.name}`
                 : isDragActiveSettings
@@ -155,7 +157,7 @@ const FileUpload = () => {
       <Box mt={4}>
         <Button
           variant="contained"
-          color="primary"
+          color="success"
           onClick={handleUpload}
           disabled={loading || !recordsFile || !settingsFile}
           startIcon={loading && <CircularProgress size={20} />}

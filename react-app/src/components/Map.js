@@ -29,6 +29,7 @@ const Map = () => {
   const [showCircles, setShowCircles] = useState(false);
   const [showPoints, setShowPoints] = useState(false);
   const [isCircleButtonDisabled, setIsCircleButtonDisabled] = useState(false);
+  const [isPointsButtonDisabled, setIsPointsButtonDisabled] = useState(false);
   const [applied, setApplied] = useState(false);
   const [currentAccuracy, setCurrentAccuracy] = useState(200);
   const [submitting, setSubmitting] = useState(false);
@@ -191,6 +192,8 @@ const Map = () => {
     }
 
     setSubmitting(true);
+    setShowCircles(false);
+    setShowPoints(false);
     try {
       console.log("filering");
 
@@ -221,8 +224,10 @@ const Map = () => {
 
       if (locations.length > 15000) {
         setIsCircleButtonDisabled(true);
+        setIsPointsButtonDisabled(true);
       } else {
         setIsCircleButtonDisabled(false);
+        setIsPointsButtonDisabled(false);
       }
 
       const newMap = new window.google.maps.Map(
@@ -339,7 +344,6 @@ const Map = () => {
               strokeWeight: 2,
               fillColor: circleColor,
               fillOpacity: 0.35,
-              map: showPoints ? newMap : null,
 
               center: position,
               radius: 20,
@@ -497,7 +501,7 @@ const Map = () => {
                 variant="contained"
                 color="secondary"
                 onClick={togglePoints}
-                disabled={!showPoints}
+                disabled={isPointsButtonDisabled}
               >
                 {showPoints ? "Ukryj markery" : "Pokaż markery"}
               </Button>
