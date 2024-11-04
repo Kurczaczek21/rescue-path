@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  react-app:
+    build:
+      context: ./react-app
+    ports:
+      - "3000:3000"
+
+  node-app:
+    build:
+      context: ./node-server
+    ports:
+      - "5050:5050"
+
+  python-app:
+    build:
+      context: ./python-server
+    ports:
+      - "5000:5000"
