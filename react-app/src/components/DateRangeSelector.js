@@ -160,16 +160,43 @@ const DateRangeSelector = () => {
   };
 
   return (
-    <Box sx={{ textAlign: "center", mt: 5 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ textAlign: "center", mt: 4, mx: "auto", maxWidth: 600 }}>
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={() => navigate("/file-upload")}
+        sx={{
+          position: "absolute",
+          top: 10,
+          right: 60,
+          backgroundColor: "#d32f2f",
+          color: "#ffffff",
+          "&:hover": {
+            backgroundColor: "#c62828",
+          },
+        }}
+      >
+        Powrót
+      </Button>
+
+      <Typography variant="h4" gutterBottom color="#2E7D32">
         Wybierz zakres dat
       </Typography>
+
       <Grid container spacing={3} justifyContent="center">
-        {/* Select for Auto-select date range */}
-        <Grid item xs={12} sm={6}>
+        {/* Pierwsza linia: Auto-wybór dat */}
+        <Grid item xs={12}>
           <FormControl fullWidth>
             <InputLabel>Auto-wybór dat</InputLabel>
-            <Select value={autoSelect} onChange={handleAutoSelectChange}>
+            <Select
+              value={autoSelect}
+              onChange={handleAutoSelectChange}
+              sx={{
+                borderRadius: 2,
+                bgcolor: "#f4f6f8",
+                "&:hover": { bgcolor: "#e8f5e9" },
+              }}
+            >
               <MenuItem value="">Wybierz opcję</MenuItem>
               <MenuItem value="lastYear">Ostatni rok</MenuItem>
               <MenuItem value="lastMonth">Ostatni miesiąc</MenuItem>
@@ -180,8 +207,8 @@ const DateRangeSelector = () => {
           </FormControl>
         </Grid>
 
-        {/* Start date input */}
-        <Grid item xs={12} sm={6}>
+        {/* Druga linia: zakres dat Od i Do */}
+        <Grid item xs={6}>
           <TextField
             fullWidth
             label="Początkowa data"
@@ -191,14 +218,11 @@ const DateRangeSelector = () => {
               setStartDate(e.target.value);
               setAutoSelect("");
             }}
-            InputLabelProps={{
-              shrink: true,
-            }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
           />
         </Grid>
-
-        {/* End date input */}
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={6}>
           <TextField
             fullWidth
             label="Końcowa data"
@@ -206,26 +230,29 @@ const DateRangeSelector = () => {
             value={endDate}
             onChange={(e) => {
               setEndDate(e.target.value);
-              setAutoSelect(""); // Reset auto-select
+              setAutoSelect("");
             }}
-            InputLabelProps={{
-              shrink: true,
-            }}
+            InputLabelProps={{ shrink: true }}
+            sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
           />
         </Grid>
 
-        {/* Error message */}
+        {/* Komunikat o błędzie */}
         {error && (
           <Grid item xs={12}>
-            <Typography color="error">{error}</Typography>
+            <Typography color="error" sx={{ mt: 2 }}>
+              {error}
+            </Typography>
           </Grid>
         )}
 
-        {/* Devices list */}
+        {/* Lista urządzeń */}
         <Grid item xs={12}>
-          <Typography variant="h6">Urządzenia:</Typography>
+          <Typography variant="h6" color="#2E7D32">
+            Urządzenia:
+          </Typography>
           {loadingDevices ? (
-            <CircularProgress />
+            <CircularProgress color="secondary" />
           ) : (
             <List>
               {devices.map((device, index) => (
@@ -233,6 +260,19 @@ const DateRangeSelector = () => {
                   key={index}
                   button
                   onClick={() => handleDeviceToggle(device)}
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor:
+                      selectedDevices.indexOf(device.deviceTag) !== -1
+                        ? "#e8f5e9" // Jasny zielony, gdy element jest zaznaczony
+                        : "transparent",
+                    "&:hover": {
+                      backgroundColor:
+                        selectedDevices.indexOf(device.deviceTag) !== -1
+                          ? "#e0f2f1" // Delikatnie ciemniejszy zielony przy hover na zaznaczonym
+                          : "#f1f8e9", // Inny odcień zieleni dla niezaznaczonych elementów
+                    },
+                  }}
                 >
                   <ListItemIcon>
                     <Checkbox
@@ -240,6 +280,7 @@ const DateRangeSelector = () => {
                       checked={selectedDevices.indexOf(device.deviceTag) !== -1}
                       tabIndex={-1}
                       disableRipple
+                      color="primary"
                     />
                   </ListItemIcon>
                   <ListItemText
@@ -256,13 +297,22 @@ const DateRangeSelector = () => {
           )}
         </Grid>
 
-        {/* Submit button */}
+        {/* Przyciski submit */}
         <Grid item xs={12}>
           <Button
             variant="contained"
             color="primary"
             onClick={handleSubmit}
             disabled={submitting}
+            sx={{
+              paddingX: 5,
+              borderRadius: 4,
+              bgcolor: "#388E3C",
+              color: "#ffffff",
+              "&:hover": {
+                bgcolor: "#2E7D32",
+              },
+            }}
           >
             {submitting ? <CircularProgress size={24} /> : "Wykonaj"}
           </Button>

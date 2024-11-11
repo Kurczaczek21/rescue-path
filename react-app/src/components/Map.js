@@ -13,6 +13,12 @@ import {
   Checkbox,
   Slider,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -423,7 +429,7 @@ const Map = () => {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div style={{ display: "flex", height: "100vh", position: "relative" }}>
       <Drawer
         sx={{
           width: 400,
@@ -437,7 +443,7 @@ const Map = () => {
         anchor="left"
       >
         <Box p={2}>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h5" gutterBottom color="#2E7D32">
             Opcje mapy
           </Typography>
 
@@ -450,7 +456,7 @@ const Map = () => {
             {locations.length > 0 ? calculateDateRange() : "Brak danych"}
           </Typography>
 
-          <Divider style={{ margin: "20px 0" }} />
+          <Divider sx={{ margin: "20px 0" }} />
 
           {/* Map buttons */}
           <Grid container spacing={2}>
@@ -459,6 +465,15 @@ const Map = () => {
                 variant="contained"
                 color="primary"
                 onClick={toggleHeatmap}
+                sx={{
+                  width: "100%",
+                  borderRadius: 2,
+                  bgcolor: "#388E3C",
+                  color: "#ffffff",
+                  "&:hover": {
+                    bgcolor: "#2E7D32",
+                  },
+                }}
               >
                 {showHeatmap ? "Ukryj mapę cieplną" : "Pokaż mapę cieplną"}
               </Button>
@@ -470,11 +485,20 @@ const Map = () => {
                 color="secondary"
                 onClick={() => setShowCircles(!showCircles)}
                 disabled={isCircleButtonDisabled}
+                sx={{
+                  width: "100%",
+                  borderRadius: 2,
+                  bgcolor: showCircles ? "#c62828" : "#d32f2f",
+                  color: "#ffffff",
+                  "&:hover": {
+                    bgcolor: showCircles ? "#b71c1c" : "#c62828",
+                  },
+                }}
               >
                 {showCircles ? "Ukryj punkty" : "Pokaż punkty"}
               </Button>
               {/* Suwak do zmiany currentAccuracy */}
-              <Typography variant="body1">
+              <Typography variant="body1" sx={{ mt: 2 }}>
                 Ustaw dokładność: {currentAccuracy}
               </Typography>
               <Slider
@@ -485,13 +509,23 @@ const Map = () => {
                 onChange={(e, value) => setCurrentAccuracy(value)}
                 disabled={!showCircles}
                 aria-labelledby="accuracy-slider"
+                sx={{ color: "#388E3C" }}
               />
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleApplyClick}
                 disabled={!showCircles}
-                sx={{ mt: 2 }}
+                sx={{
+                  mt: 2,
+                  width: "100%",
+                  borderRadius: 2,
+                  bgcolor: "#388E3C",
+                  color: "#ffffff",
+                  "&:hover": {
+                    bgcolor: "#2E7D32",
+                  },
+                }}
               >
                 Apply
               </Button>
@@ -502,71 +536,160 @@ const Map = () => {
                 color="secondary"
                 onClick={togglePoints}
                 disabled={isPointsButtonDisabled}
+                sx={{
+                  width: "100%",
+                  borderRadius: 2,
+                  bgcolor: showPoints ? "#c62828" : "#d32f2f",
+                  color: "#ffffff",
+                  "&:hover": {
+                    bgcolor: showPoints ? "#b71c1c" : "#c62828",
+                  },
+                }}
               >
                 {showPoints ? "Ukryj markery" : "Pokaż markery"}
               </Button>
             </Grid>
           </Grid>
 
-          <Divider style={{ margin: "20px 0" }} />
+          <Divider sx={{ margin: "20px 0" }} />
 
           {/* Date selection form */}
           <Box mt={2}>
-            <Typography variant="h6">Wybierz zakres dat</Typography>
+            <Typography variant="h6" color="#2E7D32">
+              Wybierz zakres dat
+            </Typography>
 
-            <Select
-              fullWidth
-              value={autoSelect}
-              onChange={handleAutoSelectChange}
-              displayEmpty
-            >
-              <MenuItem value="">Wybierz opcję</MenuItem>
-              <MenuItem value="lastYear">Ostatni rok</MenuItem>
-              <MenuItem value="lastMonth">Ostatni miesiąc</MenuItem>
-              <MenuItem value="last14Days">Ostatnie 14 dni</MenuItem>
-              <MenuItem value="last7Days">Ostatnie 7 dni</MenuItem>
-              <MenuItem value="last3Days">Ostatnie 3 dni</MenuItem>
-            </Select>
+            <Grid container spacing={2}>
+              {/* Preset selection on first row */}
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Auto-wybór dat</InputLabel>
+                  <Select
+                    value={autoSelect}
+                    onChange={handleAutoSelectChange}
+                    sx={{
+                      borderRadius: 2,
+                      bgcolor: "#f4f6f8",
+                      "&:hover": { bgcolor: "#e8f5e9" },
+                    }}
+                  >
+                    <MenuItem value="">Wybierz opcję</MenuItem>
+                    <MenuItem value="lastYear">Ostatni rok</MenuItem>
+                    <MenuItem value="lastMonth">Ostatni miesiąc</MenuItem>
+                    <MenuItem value="last14Days">Ostatnie 14 dni</MenuItem>
+                    <MenuItem value="last7Days">Ostatnie 7 dni</MenuItem>
+                    <MenuItem value="last3Days">Ostatnie 3 dni</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            <TextField
-              fullWidth
-              label="Początkowa data"
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setAutoSelect("");
-              }}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              margin="normal"
-            />
+              {/* Date range inputs on second row */}
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  label="Początkowa data"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setAutoSelect("");
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  label="Końcowa data"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setAutoSelect("");
+                  }}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
+                />
+              </Grid>
+            </Grid>
 
-            <TextField
-              fullWidth
-              label="Końcowa data"
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setAutoSelect("");
-              }}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              margin="normal"
-            />
+            {error && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {error}
+              </Typography>
+            )}
 
-            {error && <Typography color="error">{error}</Typography>}
+            {/* Devices list */}
+            <Box mt={2}>
+              <Typography variant="h6" color="#2E7D32">
+                Urządzenia:
+              </Typography>
+              {loadingDevices ? (
+                <CircularProgress color="secondary" />
+              ) : (
+                <List>
+                  {devices.map((device) => (
+                    <ListItem
+                      key={device.deviceTag}
+                      button
+                      onClick={() => handleDeviceToggle(device)}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor:
+                          selectedDevices.indexOf(device.deviceTag) !== -1
+                            ? "#e8f5e9" // Jasny zielony, gdy element jest zaznaczony
+                            : "transparent",
+                        "&:hover": {
+                          backgroundColor:
+                            selectedDevices.indexOf(device.deviceTag) !== -1
+                              ? "#c8e6c9" // Delikatnie ciemniejszy zielony przy hover na zaznaczonym
+                              : "#f1f8e9", // Inny odcień zieleni dla niezaznaczonych elementów
+                        },
+                      }}
+                    >
+                      <ListItemIcon>
+                        <Checkbox
+                          edge="start"
+                          checked={
+                            selectedDevices.indexOf(device.deviceTag) !== -1
+                          }
+                          tabIndex={-1}
+                          disableRipple
+                          color="primary"
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={`${device.devicePrettyName} (${device.platformType})`}
+                        secondary={`Producent: ${device.manufacturer}, Model: ${
+                          device.model
+                        }, Timeline Enabled: ${
+                          device.timelineEnabled ? "Tak" : "Nie"
+                        }`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Box>
 
+            {/* Submit button */}
             <Button
               fullWidth
               variant="contained"
               color="primary"
               onClick={handleSubmit}
               disabled={submitting}
-              sx={{ mt: 2 }}
+              sx={{
+                mt: 3,
+                paddingX: 5,
+                borderRadius: 4,
+                bgcolor: "#388E3C",
+                color: "#ffffff",
+                "&:hover": {
+                  bgcolor: "#2E7D32",
+                },
+              }}
             >
               {submitting ? (
                 <CircularProgress size={24} />
@@ -575,36 +698,102 @@ const Map = () => {
               )}
             </Button>
           </Box>
-          <Divider style={{ margin: "20px 0" }} />
 
-          <Box mt={2}>
-            <Typography variant="h6">Wybierz urządzenia</Typography>
-            {loadingDevices ? (
-              <Typography>Ładowanie urządzeń...</Typography>
-            ) : devices.length > 0 ? (
-              <div>
-                {devices.map((device) => (
-                  <Box
-                    key={device.deviceTag}
-                    display="flex"
-                    alignItems="center"
-                  >
-                    <Checkbox
-                      checked={selectedDevices.includes(device.deviceTag)}
-                      onChange={() => handleDeviceToggle(device)}
-                    />
-                    <Typography>{device.deviceTag}</Typography>
-                  </Box>
-                ))}
-              </div>
-            ) : (
-              <Typography>Brak dostępnych urządzeń.</Typography>
-            )}
-          </Box>
+          <Divider sx={{ margin: "20px 0" }} />
+
+          {/* Devices section is already included above */}
         </Box>
       </Drawer>
 
-      <div id="map" style={{ flexGrow: 1 }} />
+      <div id="map" style={{ flexGrow: 1, position: "relative" }} />
+
+      {/* Back Button styled to match the theme */}
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => navigate("/date-range")}
+        sx={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          backgroundColor: "#388E3C",
+          color: "#ffffff",
+          borderRadius: 2,
+          paddingX: 3,
+          paddingY: 1.5,
+          "&:hover": {
+            backgroundColor: "#2E7D32",
+          },
+        }}
+      >
+        Powrót
+      </Button>
+
+      {/* Legend on the bottom right */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 20,
+          right: 20,
+          backgroundColor: "#ffffff",
+          padding: "15px",
+          borderRadius: "8px",
+          boxShadow: "0px 0px 10px rgba(0,0,0,0.2)",
+          zIndex: 1000,
+        }}
+      >
+        <Typography variant="subtitle1" gutterBottom color="#2E7D32">
+          Legenda
+        </Typography>
+        <Box display="flex" alignItems="center" mb={1}>
+          <Box
+            sx={{
+              width: 15,
+              height: 15,
+              backgroundColor: "#FF0000",
+              borderRadius: "50%",
+              marginRight: 1,
+            }}
+          />
+          <Typography variant="body2">GPS</Typography>
+        </Box>
+        <Box display="flex" alignItems="center" mb={1}>
+          <Box
+            sx={{
+              width: 15,
+              height: 15,
+              backgroundColor: "#0000FF",
+              borderRadius: "50%",
+              marginRight: 1,
+            }}
+          />
+          <Typography variant="body2">Wi-Fi</Typography>
+        </Box>
+        <Box display="flex" alignItems="center" mb={1}>
+          <Box
+            sx={{
+              width: 15,
+              height: 15,
+              backgroundColor: "#008000",
+              borderRadius: "50%",
+              marginRight: 1,
+            }}
+          />
+          <Typography variant="body2">Cellular</Typography>
+        </Box>
+        <Box display="flex" alignItems="center">
+          <Box
+            sx={{
+              width: 15,
+              height: 15,
+              backgroundColor: "#000000",
+              borderRadius: "50%",
+              marginRight: 1,
+            }}
+          />
+          <Typography variant="body2">Inne</Typography>
+        </Box>
+      </Box>
     </div>
   );
 };

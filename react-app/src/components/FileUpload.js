@@ -73,6 +73,7 @@ const FileUpload = () => {
         }
       );
       console.log("File uploaded");
+      console.log(uploadResponse);
 
       const { records_file_path, settings_file_path } = uploadResponse.data;
 
@@ -83,6 +84,7 @@ const FileUpload = () => {
 
       const processedFilePath = parseResponse.data.file_path;
       console.log("File processed");
+      console.log(parseResponse);
 
       setResult("OK");
 
