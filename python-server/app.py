@@ -3,6 +3,7 @@ from flask_cors import CORS
 import json
 from datetime import datetime
 import os
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +19,18 @@ def calculate_duration(timestamp_list):
     duration = (end_time - start_time).total_seconds()
     return duration
 
+def validate_json_file(file_path):
+    if not file_path.lower().endswith('.json'):
+        return False, f"Wysłany plik nie jest w formacie JSON"
+    try:
+        with open(file_path, 'r') as file:
+            json.load(file) 
+    except json.JSONDecodeError:
+        return False, f"Błąd dekodowania pliku JSON"
+    except Exception as e:
+        return False, f"Nie udało się wczytać pliku: {str(e)}"
+    return True, None
+
 @app.route('/parse', methods=['POST'])
 def parse_file():
     try:
@@ -29,10 +42,13 @@ def parse_file():
         records_path = data['records_path']
         settings_path = data['settings_path']
 
-        if not os.path.isfile(records_path):
-            return jsonify({"status": "FAIL", "message": f"File {records_path} not found"}), 404
-        if not os.path.isfile(settings_path):
-            return jsonify({"status": "FAIL", "message": f"File {settings_path} not found"}), 404
+        is_valid, error_message = validate_json_file(records_path)
+        if not is_valid:
+            return jsonify({"status": "FAIL", "message": error_message}), 400
+
+        is_valid, error_message = validate_json_file(settings_path)
+        if not is_valid:
+            return jsonify({"status": "FAIL", "message": error_message}), 400
 
         with open(records_path, 'r') as records_file:
             records_data = json.load(records_file)
@@ -41,7 +57,6 @@ def parse_file():
             settings_data = json.load(settings_file)
 
         output_data = []
-
         for location in records_data["locations"]:
             lat = convert_coordinates(location["latitudeE7"])
             lng = convert_coordinates(location["longitudeE7"])
@@ -50,7 +65,6 @@ def parse_file():
             accuracy = location.get("accuracy", 0)
             duration = 0
             weight = accuracy
-            
 
             if "activity" in location:
                 timestamps = [activity["timestamp"] for activity in location["activity"]]
@@ -96,8 +110,11 @@ def parse_file():
             "file_path": output_file_path
         }), 200
 
+    except KeyError as e:
+        return jsonify({"status": "FAIL", "message": f"Brakujący klucz w wysłanym pliku: {str(e)}"}), 400
     except Exception as e:
-        return jsonify({"status": "FAIL", "message": str(e)}), 500
+        error_details = traceback.format_exc()
+        return jsonify({"status": "FAIL", "message": f"{str(e)}", "details": error_details}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

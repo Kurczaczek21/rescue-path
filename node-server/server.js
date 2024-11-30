@@ -4,10 +4,12 @@ const path = require("path");
 const fs = require("fs");
 const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
+const cron = require("node-cron");
 
 const app = express();
 const port = 5050;
 const MAX_POINTS = 60000;
+const FILE_UPLOAD_LOCATION = path.join(__dirname, "uploaded_files");
 
 app.use(
   cors({
@@ -16,14 +18,50 @@ app.use(
   })
 );
 
-const FILE_UPLOAD_LOCATION = path.join(__dirname, "uploaded_files");
-
 if (!fs.existsSync(FILE_UPLOAD_LOCATION)) {
   fs.mkdirSync(FILE_UPLOAD_LOCATION, { recursive: true });
 }
 
 app.use(fileUpload());
 app.use(express.json());
+
+const deleteOldFiles = () => {
+  fs.readdir(FILE_UPLOAD_LOCATION, (err, files) => {
+    if (err) {
+      console.error("Błąd podczas czytania folderu:", err);
+      return;
+    }
+
+    const now = Date.now();
+
+    files.forEach((file) => {
+      const filePath = path.join(FILE_UPLOAD_LOCATION, file);
+      fs.stat(filePath, (err, stats) => {
+        if (err) {
+          console.error("Błąd podczas sprawdzania statystyki pliku:", err);
+          return;
+        }
+
+        const age = now - stats.mtimeMs;
+
+        const expirationTime72h = 72 * 60 * 60 * 1000;
+        if (age > expirationTime72h) {
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              console.error(`Błąd podczas usuwania pliku ${file}:`, err);
+            } else {
+              console.log(
+                `Plik ${file} został usunięty, ponieważ jest starszy niż 72 godziny.`
+              );
+            }
+          });
+        }
+      });
+    });
+  });
+};
+
+cron.schedule("0 * * * *", deleteOldFiles);
 
 app.post("/upload", async (req, res) => {
   if (!req.files || !req.files.records_file || !req.files.settings_file) {

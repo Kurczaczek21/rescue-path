@@ -10,6 +10,8 @@ import {
   CircularProgress,
   Grid,
   Paper,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
 
@@ -18,6 +20,8 @@ const FileUpload = () => {
   const [result, setResult] = useState(null);
   const [recordsFile, setRecordsFile] = useState(null);
   const [settingsFile, setSettingsFile] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
   const navigate = useNavigate();
 
   const onDropRecords = useCallback((acceptedFiles) => {
@@ -83,18 +87,24 @@ const FileUpload = () => {
       });
 
       const processedFilePath = parseResponse.data.file_path;
-      console.log("File processed");
-      console.log(parseResponse);
-
       setResult("OK");
 
       navigate("/date-range", { state: { filePath: processedFilePath } });
     } catch (error) {
       console.error("Error:", error);
+      console.error("Error:", error.response.data);
       setResult("FAIL");
+      setErrorMessage(
+        error.response?.data?.message || "Wystąpił błąd podczas przesyłania."
+      );
+      setOpenSnackbar(true);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
   };
 
   return (
@@ -115,7 +125,7 @@ const FileUpload = () => {
               padding: 3,
               border: "2px dashed #4CAF50",
               textAlign: "center",
-              backgroundColor: "#E8F5E9", // Jasnozielone tło
+              backgroundColor: "#E8F5E9",
             }}
             {...getRootPropsRecords()}
           >
@@ -139,7 +149,7 @@ const FileUpload = () => {
               padding: 3,
               border: "2px dashed #4CAF50",
               textAlign: "center",
-              backgroundColor: "#E8F5E9", // Jasnozielone tło
+              backgroundColor: "#E8F5E9",
             }}
             {...getRootPropsSettings()}
           >
@@ -178,6 +188,19 @@ const FileUpload = () => {
           Wynik: {result}
         </Typography>
       )}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

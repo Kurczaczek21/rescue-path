@@ -32,6 +32,7 @@ const DateRangeSelector = () => {
   const location = useLocation();
 
   const filePath = location.state?.filePath;
+  const currentSite = location.state?.currentSite;
 
   const getAutoSelectedDates = (option) => {
     const today = new Date();
@@ -109,6 +110,13 @@ const DateRangeSelector = () => {
     }
 
     setSubmitting(true);
+    console.log({
+      startDate,
+      endDate,
+      file_path: filePath,
+      selectedDevices,
+    });
+
     try {
       const response = await axios.post("http://127.0.0.1:5050/filter-data", {
         startDate,
@@ -118,6 +126,8 @@ const DateRangeSelector = () => {
       });
 
       let filteredLocations = response.data;
+      console.log(response);
+
       navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
       console.error("Błąd podczas pobierania danych:", error);
@@ -144,7 +154,7 @@ const DateRangeSelector = () => {
     if (filePath) {
       fetchDevices();
     }
-  }, [filePath]);
+  }, [filePath, currentSite]);
 
   const handleDeviceToggle = (device) => {
     const currentIndex = selectedDevices.indexOf(device.deviceTag);
@@ -264,13 +274,13 @@ const DateRangeSelector = () => {
                     borderRadius: 2,
                     backgroundColor:
                       selectedDevices.indexOf(device.deviceTag) !== -1
-                        ? "#e8f5e9" // Jasny zielony, gdy element jest zaznaczony
+                        ? "#e8f5e9"
                         : "transparent",
                     "&:hover": {
                       backgroundColor:
                         selectedDevices.indexOf(device.deviceTag) !== -1
-                          ? "#e0f2f1" // Delikatnie ciemniejszy zielony przy hover na zaznaczonym
-                          : "#f1f8e9", // Inny odcień zieleni dla niezaznaczonych elementów
+                          ? "#e0f2f1"
+                          : "#f1f8e9",
                     },
                   }}
                 >
