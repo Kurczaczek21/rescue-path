@@ -17,6 +17,8 @@ import {
   Checkbox,
   ListItemIcon,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 const DateRangeSelector = () => {
@@ -30,9 +32,25 @@ const DateRangeSelector = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("error");
 
   const filePath = location.state?.filePath;
   const currentSite = location.state?.currentSite;
+
+  const showSnackbar = (message, severity = "error") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
 
   const getAutoSelectedDates = (option) => {
     const today = new Date();
@@ -95,19 +113,23 @@ const DateRangeSelector = () => {
 
   const handleSubmit = async () => {
     if (selectedDevices.length === 0) {
-      setError("Musisz wybrać co najmniej jedno urządzenie.");
+      showSnackbar("Musisz wybrać co najmniej jedno urządzenie.");
       return;
     }
 
     if (!filePath) {
-      alert("Brak ścieżki pliku!");
+      showSnackbar("Brak ścieżki pliku!");
       return;
     }
 
     if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-      setError("Data końcowa nie może być wcześniejsza niż data początkowa.");
+      showSnackbar(
+        "Data końcowa nie może być wcześniejsza niż data początkowa."
+      );
       return;
     }
+
+    showSnackbar("Dane zostały przesłane pomyślnie!", "success");
 
     setSubmitting(true);
     console.log({
@@ -217,15 +239,21 @@ const DateRangeSelector = () => {
           </FormControl>
         </Grid>
 
-        {/* Druga linia: zakres dat Od i Do */}
         <Grid item xs={6}>
           <TextField
             fullWidth
-            label="Początkowa data"
-            type="date"
-            value={startDate}
+            label="Początkowa data i godzina"
+            type="datetime-local"
+            value={
+              startDate ? new Date(startDate).toISOString().slice(0, 16) : ""
+            }
             onChange={(e) => {
-              setStartDate(e.target.value);
+              const selectedDate = new Date(e.target.value);
+              const localOffset = selectedDate.getTimezoneOffset() * 60000;
+              const adjustedDate = new Date(
+                selectedDate.getTime() - localOffset
+              );
+              setStartDate(adjustedDate.getTime());
               setAutoSelect("");
             }}
             InputLabelProps={{ shrink: true }}
@@ -235,11 +263,16 @@ const DateRangeSelector = () => {
         <Grid item xs={6}>
           <TextField
             fullWidth
-            label="Końcowa data"
-            type="date"
-            value={endDate}
+            label="Końcowa data i godzina"
+            type="datetime-local"
+            value={endDate ? new Date(endDate).toISOString().slice(0, 16) : ""}
             onChange={(e) => {
-              setEndDate(e.target.value);
+              const selectedDate = new Date(e.target.value);
+              const localOffset = selectedDate.getTimezoneOffset() * 60000;
+              const adjustedDate = new Date(
+                selectedDate.getTime() - localOffset
+              );
+              setEndDate(adjustedDate.getTime());
               setAutoSelect("");
             }}
             InputLabelProps={{ shrink: true }}
@@ -328,6 +361,20 @@ const DateRangeSelector = () => {
           </Button>
         </Grid>
       </Grid>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -133,10 +133,10 @@ app.post("/filter-data", (req, res) => {
       return res.status(400).json({ error: "Brak danych lokalizacji w pliku" });
     }
 
+    const start = new Date(startDate);
+    const end = new Date(endDate);
     let filteredData = parsedData.locations.filter((item) => {
       const timestamp = new Date(item.time);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
       const isInDateRange = timestamp >= start && timestamp <= end;
       const isInSelectedDevices =
         selectedDevices.length === 0 ||
@@ -144,18 +144,19 @@ app.post("/filter-data", (req, res) => {
 
       return isInDateRange && isInSelectedDevices;
     });
-
     if (filteredData.length > MAX_POINTS) {
       const excessRatio = filteredData.length / MAX_POINTS;
-      let step = Math.floor(excessRatio);
+      let step = Math.max(2, Math.floor(excessRatio));
+
       while (filteredData.length > MAX_POINTS) {
         filteredData = filteredData.filter((_, index) => index % step !== 0);
         if (filteredData.length > MAX_POINTS) {
-          step++;
+          step = Math.max(2, step + 1);
         }
       }
     }
 
+    console.log(filteredData.length);
     res.json(filteredData);
   });
 });

@@ -19,6 +19,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +39,7 @@ const Map = () => {
   const [isCircleButtonDisabled, setIsCircleButtonDisabled] = useState(false);
   const [isPointsButtonDisabled, setIsPointsButtonDisabled] = useState(false);
   const [applied, setApplied] = useState(false);
-  const [currentAccuracy, setCurrentAccuracy] = useState(200);
+  const [currentAccuracy, setCurrentAccuracy] = useState(1000);
   const [submitting, setSubmitting] = useState(false);
 
   const [startDate, setStartDate] = useState("");
@@ -47,16 +49,32 @@ const Map = () => {
   const [selectedDevices, setSelectedDevices] = useState([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [error, setError] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("error");
 
   const defaultCenter = {
     lat: 50.06594034606738,
     lng: 19.927688668349095,
   };
 
-  const loadGoogleMapsScript = (callback) => {
-    const existingScript = document.getElementById("googleMaps");
+  const showSnackbar = (message, severity = "error") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
 
-    if (!existingScript) {
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
+
+  const loadGoogleMapsScript = (mapLayersCallback) => {
+    const currentGoogleMap = document.getElementById("googleMaps");
+
+    if (!currentGoogleMap) {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=visualization&callback=initMap`;
       script.id = "googleMaps";
@@ -65,10 +83,10 @@ const Map = () => {
       document.body.appendChild(script);
 
       window.initMap = () => {
-        if (callback) callback();
+        if (mapLayersCallback) mapLayersCallback();
       };
     } else {
-      if (callback) callback();
+      if (mapLayersCallback) mapLayersCallback();
     }
   };
 
@@ -183,19 +201,24 @@ const Map = () => {
 
   const handleSubmit = async () => {
     if (selectedDevices.length === 0) {
-      setError("Musisz wybrać co najmniej jedno urządzenie.");
+      showSnackbar("Musisz wybrać co najmniej jedno urządzenie.");
       return;
     }
 
     if (!filePath) {
       alert("Brak ścieżki pliku!");
+      showSnackbar("Brak ścieżki pliku!");
       return;
     }
 
     if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-      setError("Data końcowa nie może być wcześniejsza niż data początkowa.");
+      showSnackbar(
+        "Data końcowa nie może być wcześniejsza niż data początkowa."
+      );
       return;
     }
+
+    showSnackbar("Dane zostały przesłane pomyślnie!", "success");
 
     setSubmitting(true);
     setShowCircles(false);
@@ -207,10 +230,18 @@ const Map = () => {
         startDate,
         endDate,
         file_path: filePath,
-        selectedDevices, // Zaznaczone urządzenia
+        selectedDevices,
       });
 
       let filteredLocations = response.data;
+
+      console.log({
+        startDate,
+        endDate,
+        file_path: filePath,
+        selectedDevices,
+      });
+      console.log(response.data);
 
       navigate("/map", { state: { locations: filteredLocations, filePath } });
     } catch (error) {
@@ -416,6 +447,8 @@ const Map = () => {
   }, [locations, showCircles, showPoints, applied]);
 
   const toggleHeatmap = () => {
+    console.log(startDate);
+    console.log(endDate);
     if (showHeatmap) {
       heatmap?.setMap(null);
     } else {
@@ -432,10 +465,10 @@ const Map = () => {
     <div style={{ display: "flex", height: "100vh", position: "relative" }}>
       <Drawer
         sx={{
-          width: 400,
+          width: 430,
           flexShrink: 0,
           "& .MuiDrawer-paper": {
-            width: 400,
+            width: 430,
             boxSizing: "border-box",
           },
         }}
@@ -483,7 +516,12 @@ const Map = () => {
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={() => setShowCircles(!showCircles)}
+                onClick={() => {
+                  setShowCircles(!showCircles);
+                  if (!showCircles) {
+                    setShowPoints(false);
+                  }
+                }}
                 disabled={isCircleButtonDisabled}
                 sx={{
                   width: "100%",
@@ -503,9 +541,9 @@ const Map = () => {
               </Typography>
               <Slider
                 value={currentAccuracy}
-                min={50}
+                min={10}
                 max={1000}
-                step={50}
+                step={10}
                 onChange={(e, value) => setCurrentAccuracy(value)}
                 disabled={!showCircles}
                 aria-labelledby="accuracy-slider"
@@ -527,14 +565,19 @@ const Map = () => {
                   },
                 }}
               >
-                Apply
+                Zastosuj
               </Button>
             </Grid>
             <Grid item xs={12}>
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={togglePoints}
+                onClick={() => {
+                  setShowPoints(!showPoints);
+                  if (!showPoints) {
+                    setShowCircles(false);
+                  }
+                }}
                 disabled={isPointsButtonDisabled}
                 sx={{
                   width: "100%",
@@ -555,7 +598,7 @@ const Map = () => {
 
           {/* Date selection form */}
           <Box mt={2}>
-            <Typography variant="h6" color="#2E7D32">
+            <Typography mb={2} variant="h6" color="#2E7D32">
               Wybierz zakres dat
             </Typography>
 
@@ -583,34 +626,59 @@ const Map = () => {
                 </FormControl>
               </Grid>
 
-              {/* Date range inputs on second row */}
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Początkowa data"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    setAutoSelect("");
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Końcowa data"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value);
-                    setAutoSelect("");
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
-                />
+              <Grid container spacing={2} sx={{ mt: 2, pl: 2 }}>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Początkowa data i godzina"
+                    type="datetime-local"
+                    value={
+                      startDate
+                        ? new Date(startDate).toISOString().slice(0, 16) // Konwersja do UTC ISO
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      const localOffset =
+                        selectedDate.getTimezoneOffset() * 60000;
+                      const adjustedDate = new Date(
+                        selectedDate.getTime() - localOffset
+                      );
+                      setStartDate(adjustedDate.getTime());
+                    }}
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{
+                      sx: { fontSize: "0.875rem" },
+                    }}
+                    sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Końcowa data i godzina"
+                    type="datetime-local"
+                    value={
+                      endDate
+                        ? new Date(endDate).toISOString().slice(0, 16)
+                        : ""
+                    }
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      const localOffset =
+                        selectedDate.getTimezoneOffset() * 60000;
+                      const adjustedDate = new Date(
+                        selectedDate.getTime() - localOffset
+                      );
+                      setEndDate(adjustedDate.getTime());
+                    }}
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{
+                      sx: { fontSize: "0.875rem" },
+                    }}
+                    sx={{ borderRadius: 2, bgcolor: "#f4f6f8" }}
+                  />
+                </Grid>
               </Grid>
             </Grid>
 
@@ -631,6 +699,7 @@ const Map = () => {
                 <List>
                   {devices.map((device) => (
                     <ListItem
+                      p={1}
                       key={device.deviceTag}
                       button
                       onClick={() => handleDeviceToggle(device)}
@@ -638,13 +707,13 @@ const Map = () => {
                         borderRadius: 2,
                         backgroundColor:
                           selectedDevices.indexOf(device.deviceTag) !== -1
-                            ? "#e8f5e9" // Jasny zielony, gdy element jest zaznaczony
+                            ? "#e8f5e9"
                             : "transparent",
                         "&:hover": {
                           backgroundColor:
                             selectedDevices.indexOf(device.deviceTag) !== -1
-                              ? "#c8e6c9" // Delikatnie ciemniejszy zielony przy hover na zaznaczonym
-                              : "#f1f8e9", // Inny odcień zieleni dla niezaznaczonych elementów
+                              ? "#c8e6c9"
+                              : "#f1f8e9",
                         },
                       }}
                     >
@@ -663,7 +732,7 @@ const Map = () => {
                         primary={`${device.devicePrettyName} (${device.platformType})`}
                         secondary={`Producent: ${device.manufacturer}, Model: ${
                           device.model
-                        }, Timeline Enabled: ${
+                        }, Timeline aktywowana: ${
                           device.timelineEnabled ? "Tak" : "Nie"
                         }`}
                       />
@@ -711,11 +780,15 @@ const Map = () => {
       <Button
         variant="contained"
         color="primary"
-        onClick={() => navigate("/date-range")}
+        onClick={() => {
+          navigate("/date-range", {
+            state: { currentSite: "map", filePath: filePath },
+          });
+        }}
         sx={{
           position: "absolute",
           top: 20,
-          right: 20,
+          right: 120,
           backgroundColor: "#388E3C",
           color: "#ffffff",
           borderRadius: 2,
@@ -734,7 +807,7 @@ const Map = () => {
         sx={{
           position: "absolute",
           bottom: 20,
-          right: 20,
+          right: 60,
           backgroundColor: "#ffffff",
           padding: "15px",
           borderRadius: "8px",
@@ -794,6 +867,20 @@ const Map = () => {
           <Typography variant="body2">Inne</Typography>
         </Box>
       </Box>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
