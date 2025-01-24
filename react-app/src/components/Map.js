@@ -211,6 +211,23 @@ const Map = () => {
       return;
     }
 
+    console.log("RESR");
+
+    const isValidDate = (date) => {
+      console.log(date && !isNaN(new Date(date).getTime()));
+      return date && !isNaN(new Date(date).getTime());
+    };
+
+    if (!isValidDate(startDate)) {
+      showSnackbar("Nieprawidłowy format daty początkowej.");
+      return;
+    }
+
+    if (!isValidDate(endDate)) {
+      showSnackbar("Nieprawidłowy format daty końcowej.");
+      return;
+    }
+
     if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
       showSnackbar(
         "Data końcowa nie może być wcześniejsza niż data początkowa."

@@ -269,10 +269,10 @@ const DateRangeSelector = () => {
             onChange={(e) => {
               const selectedDate = new Date(e.target.value);
               const localOffset = selectedDate.getTimezoneOffset() * 60000;
-              const adjustedDate = new Date(
-                selectedDate.getTime() - localOffset
-              );
-              setEndDate(adjustedDate.getTime());
+              // const adjustedDate = new Date(
+              //   selectedDate.getTime() - localOffset
+              // );
+              setEndDate(selectedDate.getTime());
               setAutoSelect("");
             }}
             InputLabelProps={{ shrink: true }}
