@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Skopiowanie pliku app.py i instalacja zależności
 COPY app.py ./
-RUN pip install flask flask-cors
+RUN pip install flask flask-cors ijson
 
 # Komenda do uruchomienia aplikacji
 CMD ["python", "app.py"]
