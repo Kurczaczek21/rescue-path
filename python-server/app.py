@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import os
 import traceback
+import ijson
 
 app = Flask(__name__)
 CORS(app)
@@ -31,6 +32,11 @@ def validate_json_file(file_path):
         return False, f"Nie udało się wczytać pliku: {str(e)}"
     return True, None
 
+def stream_locations(file_path):
+    with open(file_path, 'r') as records_file:
+        for location in ijson.items(records_file, 'locations.item'):
+            yield location
+            
 @app.route('/parse', methods=['POST'])
 def parse_file():
     try:
@@ -50,39 +56,8 @@ def parse_file():
         if not is_valid:
             return jsonify({"status": "FAIL", "message": error_message}), 400
 
-        with open(records_path, 'r') as records_file:
-            records_data = json.load(records_file)
-
         with open(settings_path, 'r') as settings_file:
             settings_data = json.load(settings_file)
-
-        output_data = []
-        for location in records_data["locations"]:
-            lat = convert_coordinates(location["latitudeE7"])
-            lng = convert_coordinates(location["longitudeE7"])
-            time = location["timestamp"]
-            source = location.get("source", "UNKNOWN")
-            accuracy = location.get("accuracy", 0)
-            duration = 0
-            weight = accuracy
-
-            if "activity" in location:
-                timestamps = [activity["timestamp"] for activity in location["activity"]]
-                duration = calculate_duration(timestamps)
-
-            device_tag = location.get("deviceTag", None)
-
-            output_data.append({
-                "location": {
-                    "lat": lat,
-                    "lng": lng
-                },
-                "weight": weight,
-                "time": time,
-                "duration": duration,
-                "source": source,
-                "deviceTag": device_tag
-            })
 
         devices = []
         for device in settings_data.get("deviceSettings", []):
@@ -96,13 +71,45 @@ def parse_file():
             })
 
         output_file_path = records_path.replace('.json', '_processed.json')
-        processed_data = {
-            "devices": devices,
-            "locations": output_data
-        }
 
         with open(output_file_path, 'w') as outfile:
-            json.dump(processed_data, outfile, indent=4)
+            outfile.write('{"devices": ')
+            json.dump(devices, outfile, indent=4)
+            outfile.write(',\n"locations": [\n')
+
+            first = True
+            for location in stream_locations(records_path):
+                lat = convert_coordinates(location["latitudeE7"])
+                lng = convert_coordinates(location["longitudeE7"])
+                time = location["timestamp"]
+                source = location.get("source", "UNKNOWN")
+                accuracy = location.get("accuracy", 0)
+                duration = 0
+
+                if "activity" in location:
+                    timestamps = [activity["timestamp"] for activity in location["activity"]]
+                    duration = calculate_duration(timestamps)
+
+                device_tag = location.get("deviceTag", None)
+
+                location_data = {
+                    "location": {
+                        "lat": lat,
+                        "lng": lng
+                    },
+                    "weight": accuracy,
+                    "time": time,
+                    "duration": duration,
+                    "source": source,
+                    "deviceTag": device_tag
+                }
+
+                if not first:
+                    outfile.write(',\n')
+                json.dump(location_data, outfile, indent=4)
+                first = False
+
+            outfile.write('\n]}')
 
         return jsonify({
             "status": "OK",
