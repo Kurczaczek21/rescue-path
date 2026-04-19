@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import traceback
 import ijson
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -56,6 +57,7 @@ def parse_file():
         if not is_valid:
             return jsonify({"status": "FAIL", "message": error_message}), 400
 
+        # Wczytaj ustawienia
         with open(settings_path, 'r') as settings_file:
             settings_data = json.load(settings_file)
 
@@ -72,25 +74,54 @@ def parse_file():
 
         output_file_path = records_path.replace('.json', '_processed.json')
 
+        # Wczytaj dane wejściowe
+        with open(records_path, 'r') as infile:
+            data = json.load(infile)
+
+        # Zapisz dane wyjściowe
         with open(output_file_path, 'w') as outfile:
             outfile.write('{"devices": ')
             json.dump(devices, outfile, indent=4)
             outfile.write(',\n"locations": [\n')
 
             first = True
-            for location in stream_locations(records_path):
-                lat = convert_coordinates(location["latitudeE7"])
-                lng = convert_coordinates(location["longitudeE7"])
-                time = location["timestamp"]
-                source = location.get("source", "UNKNOWN")
-                accuracy = location.get("accuracy", 0)
-                duration = 0
+            for signal in data.get("rawSignals", []):
+                if "position" not in signal:
+                    continue
 
-                if "activity" in location:
-                    timestamps = [activity["timestamp"] for activity in location["activity"]]
-                    duration = calculate_duration(timestamps)
+                pos = signal["position"]
 
-                device_tag = location.get("deviceTag", None)
+                # LatLng string np. "50.1047267°, 19.8358646°"
+                latlng_str = pos.get("LatLng", "")
+                parts = latlng_str.replace("°", "").split(",")
+                if len(parts) != 2:
+                    continue
+
+                print(parts[0])
+                print(parts[1])
+                
+                def clean_coordinate(s):
+                    # usuń wszystkie znaki oprócz cyfr, kropki i minus
+                    return ''.join(c for c in s if c.isdigit() or c in ".-")
+
+                lat_str = clean_coordinate(parts[0].strip())
+                lng_str = clean_coordinate(parts[1].strip())
+                
+                print(lat_str)
+                print(lng_str)
+
+                try:
+                    lat = float(lat_str)
+                    lng = float(lng_str)
+                except ValueError:
+                    continue
+                
+                time = pos.get("timestamp")
+                source = pos.get("source", "UNKNOWN")
+                accuracy = pos.get("accuracyMeters", 0)
+                
+                print(lat)
+                print(lng)
 
                 location_data = {
                     "location": {
@@ -99,9 +130,9 @@ def parse_file():
                     },
                     "weight": accuracy,
                     "time": time,
-                    "duration": duration,
+                    "duration": 0,
                     "source": source,
-                    "deviceTag": device_tag
+                    "deviceTag": 1111
                 }
 
                 if not first:
@@ -109,6 +140,7 @@ def parse_file():
                 json.dump(location_data, outfile, indent=4)
                 first = False
 
+            # zamykająca klamra JSON
             outfile.write('\n]}')
 
         return jsonify({
@@ -122,6 +154,7 @@ def parse_file():
     except Exception as e:
         error_details = traceback.format_exc()
         return jsonify({"status": "FAIL", "message": f"{str(e)}", "details": error_details}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

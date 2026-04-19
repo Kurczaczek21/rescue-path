@@ -138,11 +138,7 @@ app.post("/filter-data", (req, res) => {
     let filteredData = parsedData.locations.filter((item) => {
       const timestamp = new Date(item.time);
       const isInDateRange = timestamp >= start && timestamp <= end;
-      const isInSelectedDevices =
-        selectedDevices.length === 0 ||
-        selectedDevices.includes(item.deviceTag);
-
-      return isInDateRange && isInSelectedDevices;
+      return isInDateRange;
     });
     if (filteredData.length > MAX_POINTS) {
       const excessRatio = filteredData.length / MAX_POINTS;
